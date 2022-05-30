@@ -1,0 +1,6 @@
+.history
+.vscode
+.venv
+tmp/
+data/
+
