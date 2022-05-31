@@ -89,30 +89,24 @@ if __name__ == "__main__":
     predicted_increase = y_predictions[0] - y.iloc[-1]
     predicted_increase_downscaled = predicted_increase * downscaling
     change_needed = (predicted_increase_downscaled - total_size).round(2)
+    logger.info(f"Toal size (sum) of current positions: {total_size}")
     logger.info(f"Size wanted: {predicted_increase.round(2)}")
     logger.info(f"Size wanted downscaled: {predicted_increase_downscaled.round(2)}")
-    logger.info(f"Toal size of current trades: {total_size}")
     logger.info(f"change needed: {change_needed}")
 
     if ENABLE_TRADING:
-        if abs(change_needed) < gold_trader.minDealSize:
-            logger.info("Trade not large enough")
-
-        elif change_needed > 0:
-            print("We're buying!")
+        if abs(change_needed) > gold_trader.minDealSize:
+            if change_needed < 0:
+                logger.info("We're selling!")
+                direction="SELL"
+            if change_needed < 0:
+                logger.info("We're buying!")
+                direction="BUY"
             res = gold_trader.ig_service.create_open_position(
                 **gold_trader.create_open_position_config(
-                    size=abs(change_needed), direction="BUY"
+                    size=change_needed, direction=direction
                 )
             )
-            print(res)
-        elif change_needed < 0:
-            print("We're selling!")
-            res = ig_service.create_open_position(
-                **gold_trader.create_open_position_config(
-                    direction="SELL", size=abs(change_needed)
-                )
-            )
-            print(res)
-        elif change_needed == 0:
-            print("No trade needed")
+            logger.info(res)
+        else:
+            logger.info("Trade not large enough")
