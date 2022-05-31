@@ -1,10 +1,12 @@
 
 from datetime import datetime
+import pandas as pd
+
 def format_date(d: datetime ):
     return d.strftime("%Y-%m-%d")
 
 
-def standardise_column_names(df):
+def standardise_column_names(df: pd.DataFrame):
     df_new = df.copy()
     df_new.columns = ["_".join(i).lower() for i in df_new.columns]
     return df_new
