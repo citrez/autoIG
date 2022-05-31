@@ -69,7 +69,7 @@ lxml = ["lxml"]
 name = "black"
 version = "22.3.0"
 description = "The uncompromising code formatter."
-category = "dev"
+category = "main"
 optional = false
 python-versions = ">=3.6.2"
 
@@ -164,7 +164,7 @@ unicode_backport = ["unicodedata2"]
 name = "click"
 version = "8.1.3"
 description = "Composable command line interface toolkit"
-category = "dev"
+category = "main"
 optional = false
 python-versions = ">=3.7"
 
@@ -175,7 +175,7 @@ colorama = {version = "*", markers = "platform_system == \"Windows\""}
 name = "colorama"
 version = "0.4.4"
 description = "Cross-platform colored terminal text."
-category = "dev"
+category = "main"
 optional = false
 python-versions = ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*, !=3.4.*"
 
@@ -205,6 +205,18 @@ description = "Composable style cycles"
 category = "dev"
 optional = false
 python-versions = ">=3.6"
+
+[[package]]
+name = "dbnomics"
+version = "1.2.3"
+description = "DBnomics Python Client"
+category = "main"
+optional = false
+python-versions = "*"
+
+[package.dependencies]
+pandas = ">=0.21"
+requests = ">=2.18.4"
 
 [[package]]
 name = "debugpy"
@@ -510,7 +522,7 @@ yaml = ["PyYAML (>=5.1.0)"]
 name = "mypy-extensions"
 version = "0.4.3"
 description = "Experimental type system extensions for programs checked with the mypy typechecker."
-category = "dev"
+category = "main"
 optional = false
 python-versions = "*"
 
@@ -596,7 +608,7 @@ testing = ["docopt", "pytest (<6.0.0)"]
 name = "pathspec"
 version = "0.9.0"
 description = "Utility library for gitignore style pattern matching of file paths."
-category = "dev"
+category = "main"
 optional = false
 python-versions = "!=3.0.*,!=3.1.*,!=3.2.*,!=3.3.*,!=3.4.*,>=2.7"
 
@@ -650,7 +662,7 @@ tests = ["check-manifest", "coverage", "defusedxml", "markdown2", "olefile", "pa
 name = "platformdirs"
 version = "2.5.2"
 description = "A small Python module for determining appropriate platform-specific dirs, e.g. a \"user data dir\"."
-category = "dev"
+category = "main"
 optional = false
 python-versions = ">=3.7"
 
@@ -1041,7 +1053,7 @@ python-versions = ">=3.6"
 name = "tomli"
 version = "2.0.1"
 description = "A lil' TOML parser"
-category = "dev"
+category = "main"
 optional = false
 python-versions = ">=3.7"
 
@@ -1117,7 +1129,7 @@ wsproto = ">=0.14"
 name = "typing-extensions"
 version = "4.2.0"
 description = "Backported and Experimental Type Hints for Python 3.7+"
-category = "dev"
+category = "main"
 optional = false
 python-versions = ">=3.7"
 
@@ -1190,7 +1202,7 @@ requests = ">=2.26"
 [metadata]
 lock-version = "1.1"
 python-versions = "~3.9"
-content-hash = "3760c9179d8e31a68f17e255d73fe2d1fb1823ad941d409907e3e151f352132d"
+content-hash = "2f6c637d1556f405dbec75afea6521242ad96e84b383b8568fd4e54180bca4ee"
 
 [metadata.files]
 appnope = [
@@ -1348,6 +1360,10 @@ cryptography = [
 cycler = [
     {file = "cycler-0.11.0-py3-none-any.whl", hash = "sha256:3a27e95f763a428a739d2add979fa7494c912a32c17c4c38c4d5f082cad165a3"},
     {file = "cycler-0.11.0.tar.gz", hash = "sha256:9c87405839a19696e837b3b818fed3f5f69f16f1eec1a1ad77e043dcea9c772f"},
+]
+dbnomics = [
+    {file = "DBnomics-1.2.3-py3-none-any.whl", hash = "sha256:494a7465383cc0b4a21fc7442c5d0e27eb3c7f04a85e285b652c9efc9fdb3c4b"},
+    {file = "DBnomics-1.2.3.tar.gz", hash = "sha256:02e6039d10860f9d7dc99cd45ffe548934d4e1d373445d1a00b12fb057a0a6ab"},
 ]
 debugpy = [
     {file = "debugpy-1.6.0-cp310-cp310-macosx_10_15_x86_64.whl", hash = "sha256:eb1946efac0c0c3d411cea0b5ac772fbde744109fd9520fb0c5a51979faf05ad"},

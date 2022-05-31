@@ -1,0 +1,112 @@
+2022-05-31 11:01:25,979 - __main__ - INFO - Size wanted: 6.41
+2022-05-31 11:01:25,979 - __main__ - INFO - Size wanted downscaled: 0.64
+2022-05-31 11:01:25,979 - __main__ - INFO - Toal size of current trades: 0.07
+2022-05-31 11:01:25,979 - __main__ - INFO - change needed: 0.57
+2022-05-31 12:15:19,309 - __main__ - INFO - Size wanted: 7.13
+2022-05-31 12:15:19,310 - __main__ - INFO - Size wanted downscaled: 0.71
+2022-05-31 12:15:19,311 - __main__ - INFO - Toal size of current trades: 0.6399999999999999
+2022-05-31 12:15:19,311 - __main__ - INFO - change needed: 0.07
+2022-05-31 12:15:19,311 - __main__ - INFO - Trade not large enough
+2022-05-31 13:00:30,645 - __main__ - INFO - Size wanted: 6.76
+2022-05-31 13:00:30,648 - __main__ - INFO - Size wanted downscaled: 0.68
+2022-05-31 13:00:30,648 - __main__ - INFO - Toal size of current trades: 0.6399999999999999
+2022-05-31 13:00:30,648 - __main__ - INFO - change needed: 0.04
+2022-05-31 13:00:30,649 - __main__ - INFO - Trade not large enough
+2022-05-31 13:15:14,306 - __main__ - INFO - Size wanted: 6.76
+2022-05-31 13:15:14,309 - __main__ - INFO - Size wanted downscaled: 0.68
+2022-05-31 13:15:14,310 - __main__ - INFO - Toal size of current trades: 0.6399999999999999
+2022-05-31 13:15:14,310 - __main__ - INFO - change needed: 0.04
+2022-05-31 13:15:14,310 - __main__ - INFO - Trade not large enough
+2022-05-31 13:30:14,037 - __main__ - INFO - Size wanted: 6.76
+2022-05-31 13:30:14,039 - __main__ - INFO - Size wanted downscaled: 0.68
+2022-05-31 13:30:14,040 - __main__ - INFO - Toal size of current trades: 0.6399999999999999
+2022-05-31 13:30:14,040 - __main__ - INFO - change needed: 0.04
+2022-05-31 13:30:14,040 - __main__ - INFO - Trade not large enough
+2022-05-31 13:47:17,943 - __main__ - INFO - Size wanted: 6.76
+2022-05-31 13:47:17,945 - __main__ - INFO - Size wanted downscaled: 0.68
+2022-05-31 13:47:17,945 - __main__ - INFO - Toal size of current trades: 0.6399999999999999
+2022-05-31 13:47:17,945 - __main__ - INFO - change needed: 0.04
+2022-05-31 13:47:17,945 - __main__ - INFO - Trade not large enough
+2022-05-31 14:00:19,232 - __main__ - INFO - Size wanted: 6.04
+2022-05-31 14:00:19,235 - __main__ - INFO - Size wanted downscaled: 0.6
+2022-05-31 14:00:19,235 - __main__ - INFO - Toal size of current trades: 0.6399999999999999
+2022-05-31 14:00:19,235 - __main__ - INFO - change needed: -0.04
+2022-05-31 14:00:19,235 - __main__ - INFO - Trade not large enough
+2022-05-31 14:15:14,667 - __main__ - INFO - Size wanted: 6.04
+2022-05-31 14:15:14,670 - __main__ - INFO - Size wanted downscaled: 0.6
+2022-05-31 14:15:14,670 - __main__ - INFO - Toal size of current trades: 0.6399999999999999
+2022-05-31 14:15:14,670 - __main__ - INFO - change needed: -0.04
+2022-05-31 14:15:14,671 - __main__ - INFO - Trade not large enough
+2022-05-31 14:30:17,013 - __main__ - INFO - Size wanted: 6.04
+2022-05-31 14:30:17,015 - __main__ - INFO - Size wanted downscaled: 0.6
+2022-05-31 14:30:17,015 - __main__ - INFO - Toal size of current trades: 0.6399999999999999
+2022-05-31 14:30:17,015 - __main__ - INFO - change needed: -0.04
+2022-05-31 14:30:17,015 - __main__ - INFO - Trade not large enough
+2022-05-31 14:45:13,298 - __main__ - INFO - Size wanted: 6.04
+2022-05-31 14:45:13,301 - __main__ - INFO - Size wanted downscaled: 0.6
+2022-05-31 14:45:13,301 - __main__ - INFO - Toal size of current trades: 0.6399999999999999
+2022-05-31 14:45:13,301 - __main__ - INFO - change needed: -0.04
+2022-05-31 14:45:13,301 - __main__ - INFO - Trade not large enough
+2022-05-31 15:03:59,784 - __main__ - INFO - Size wanted: 3.56
+2022-05-31 15:03:59,787 - __main__ - INFO - Size wanted downscaled: 0.36
+2022-05-31 15:03:59,787 - __main__ - INFO - Toal size of current trades: 0.6399999999999999
+2022-05-31 15:03:59,787 - __main__ - INFO - change needed: -0.28
+2022-05-31 15:03:59,787 - __main__ - INFO - Trade not large enough
+2022-05-31 15:04:12,523 - __main__ - INFO - Size wanted: 3.56
+2022-05-31 15:04:12,525 - __main__ - INFO - Size wanted downscaled: 0.36
+2022-05-31 15:04:12,525 - __main__ - INFO - Toal size of current trades: 0.6399999999999999
+2022-05-31 15:04:12,525 - __main__ - INFO - change needed: -0.28
+2022-05-31 15:04:12,526 - __main__ - INFO - Trade not large enough
+2022-05-31 15:05:13,458 - __main__ - INFO - Size wanted: 3.56
+2022-05-31 15:05:13,459 - __main__ - INFO - Size wanted downscaled: 0.36
+2022-05-31 15:05:13,459 - __main__ - INFO - Toal size of current trades: 0.6399999999999999
+2022-05-31 15:05:13,459 - __main__ - INFO - change needed: -0.28
+2022-05-31 15:05:13,459 - __main__ - INFO - Trade not large enough
+2022-05-31 15:06:14,652 - __main__ - INFO - Size wanted: 3.56
+2022-05-31 15:06:14,653 - __main__ - INFO - Size wanted downscaled: 0.36
+2022-05-31 15:06:14,653 - __main__ - INFO - Toal size of current trades: 0.6399999999999999
+2022-05-31 15:06:14,653 - __main__ - INFO - change needed: -0.28
+2022-05-31 15:06:14,653 - __main__ - INFO - Trade not large enough
+2022-05-31 15:07:14,329 - __main__ - INFO - Size wanted: 3.56
+2022-05-31 15:07:14,330 - __main__ - INFO - Size wanted downscaled: 0.36
+2022-05-31 15:07:14,330 - __main__ - INFO - Toal size of current trades: 0.6399999999999999
+2022-05-31 15:07:14,330 - __main__ - INFO - change needed: -0.28
+2022-05-31 15:07:14,331 - __main__ - INFO - Trade not large enough
+2022-05-31 15:08:11,839 - __main__ - INFO - Size wanted: 3.56
+2022-05-31 15:08:11,839 - __main__ - INFO - Size wanted downscaled: 0.36
+2022-05-31 15:08:11,839 - __main__ - INFO - Toal size of current trades: 0.6399999999999999
+2022-05-31 15:08:11,839 - __main__ - INFO - change needed: -0.28
+2022-05-31 15:08:11,839 - __main__ - INFO - Trade not large enough
+2022-05-31 15:09:14,879 - __main__ - INFO - Size wanted: 3.56
+2022-05-31 15:09:14,880 - __main__ - INFO - Size wanted downscaled: 0.36
+2022-05-31 15:09:14,880 - __main__ - INFO - Toal size of current trades: 0.6399999999999999
+2022-05-31 15:09:14,880 - __main__ - INFO - change needed: -0.28
+2022-05-31 15:09:14,880 - __main__ - INFO - Trade not large enough
+2022-05-31 15:10:12,388 - __main__ - INFO - Size wanted: 3.56
+2022-05-31 15:10:12,390 - __main__ - INFO - Size wanted downscaled: 0.36
+2022-05-31 15:10:12,391 - __main__ - INFO - Toal size of current trades: 0.6399999999999999
+2022-05-31 15:10:12,391 - __main__ - INFO - change needed: -0.28
+2022-05-31 15:10:12,391 - __main__ - INFO - Trade not large enough
+2022-05-31 15:11:14,845 - __main__ - INFO - Size wanted: 3.56
+2022-05-31 15:11:14,847 - __main__ - INFO - Size wanted downscaled: 0.36
+2022-05-31 15:11:14,847 - __main__ - INFO - Toal size of current trades: 0.6399999999999999
+2022-05-31 15:11:14,848 - __main__ - INFO - change needed: -0.28
+2022-05-31 15:11:14,848 - __main__ - INFO - Trade not large enough
+2022-05-31 15:12:16,077 - __main__ - INFO - Size wanted: 3.56
+2022-05-31 15:12:16,084 - __main__ - INFO - Size wanted downscaled: 0.36
+2022-05-31 15:12:16,084 - __main__ - INFO - Toal size of current trades: 0.6399999999999999
+2022-05-31 15:12:16,085 - __main__ - INFO - change needed: -0.28
+2022-05-31 15:12:16,085 - __main__ - INFO - Trade not large enough
+2022-05-31 15:13:22,304 - __main__ - INFO - Size wanted: 3.56
+2022-05-31 15:13:22,306 - __main__ - INFO - Size wanted downscaled: 0.36
+2022-05-31 15:13:22,306 - __main__ - INFO - Toal size of current trades: 0.6399999999999999
+2022-05-31 15:13:22,306 - __main__ - INFO - change needed: -0.28
+2022-05-31 15:13:22,306 - __main__ - INFO - Trade not large enough
+2022-05-31 16:14:48,375 - __main__ - DEBUG - Getting history, Start date: 2022-05-28, end data: 2022-06-01, resolution: D
+2022-05-31 16:15:02,903 - __main__ - DEBUG - Getting history, Start date: 2022-05-28, end data: 2022-06-01, resolution: D
+2022-05-31 16:16:03,287 - __main__ - DEBUG - Getting history, Start date: 2022-05-28, end data: 2022-06-01, resolution: D
+2022-05-31 16:16:08,198 - __main__ - DEBUG - Getting history, Start date: 2022-05-28, end data: 2022-06-01, resolution: D
+2022-05-31 16:17:06,973 - __main__ - DEBUG - Getting history, Start date: 2022-05-28, end data: 2022-06-01, resolution: D
+2022-05-31 16:18:05,257 - __main__ - DEBUG - Getting history, Start date: 2022-05-28, end data: 2022-06-01, resolution: D
+2022-05-31 16:19:06,370 - __main__ - DEBUG - Getting history, Start date: 2022-05-28, end data: 2022-06-01, resolution: D
+2022-05-31 16:20:03,710 - __main__ - DEBUG - Getting history, Start date: 2022-05-28, end data: 2022-06-01, resolution: D

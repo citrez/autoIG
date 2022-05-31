@@ -1,5 +1,5 @@
 [tool.poetry]
-name = "test_faig"
+name = "autoIG"
 version = "0.1.0"
 description = ""
 authors = ["ezra citron <ezracitron@gmail.com>"]
@@ -17,7 +17,8 @@ requests = "^2.27.1"
 yfinance = "^0.1.70"
 boto3 = "^1.20.54"
 sklearn = "^0.0"
-
+black = "^22.3.0"
+DBnomics = "^1.2.3"
 
 [tool.poetry.dev-dependencies]
 ipykernel = "^6.9.0"

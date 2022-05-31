@@ -1,0 +1,2 @@
+# * * * * * sh /Users/ezracitron/Documents/date-script.sh
+0 * * * * cd /Users/ezracitron/my_projects/autoIG && /usr/bin/env /Users/ezracitron/my_projects/autoIG/.venv/bin/python /Users/ezracitron/my_projects/autoIG/trade.py > ~/cron1.txt  
