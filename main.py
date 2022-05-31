@@ -36,7 +36,7 @@ SANDP_EPIC = "IX.D.SPTRD.DAILY.IP"
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
-file_handler = logging.FileHandler("trade.log")
+file_handler = logging.FileHandler(filename="trade.log")
 f_format = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
 file_handler.setFormatter(f_format)
 logger.addHandler(file_handler)

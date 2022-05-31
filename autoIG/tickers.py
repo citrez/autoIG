@@ -1,0 +1,2 @@
+GOLD_TICKER = "GC=F"
+MSFT_TICKER = "msft"
