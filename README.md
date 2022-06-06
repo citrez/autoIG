@@ -9,5 +9,9 @@ Glossary:
 DFB = daily funded bet. Remanins open util you close it
 
 
+[dbdiagram](https://dbdiagram.io/d/62949e0cf040f104c1bff2c0) helps me draw the entity relationship database model seamlessly. 
+
+[grafana](https://citrez.grafana.net/a/grafana-easystart-app/?src=hg_notification_trial) can be used the moniot rdataabases and produce analytics. 
+
 
 
