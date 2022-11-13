@@ -6,7 +6,6 @@ import logging
 from sklearn.preprocessing import PolynomialFeatures
 from sklearn.pipeline import Pipeline
 from sklearn.linear_model import LinearRegression
-
 from autoIG import utils, trade, epics
 
 gold_trader = trade.Trader(epics.GOLD_EPIC)
