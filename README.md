@@ -12,5 +12,9 @@ DFB = daily funded bet. Remanins open util you close it
 
 [grafana](https://citrez.grafana.net/a/grafana-easystart-app/?src=hg_notification_trial) can be used the moniot rdataabases and produce analytics. 
 
+Choices:
+Do not use Oanda. Use IG API for making trades. 
+
+
 
 
