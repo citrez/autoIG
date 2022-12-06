@@ -1,6 +1,9 @@
-.history
-.vscode
-.venv
+.history/
+.vscode/
+.venv/
 tmp/
 data/
+.DS_Store
 
+__pycache__
+*.xlsx
