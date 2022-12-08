@@ -1,0 +1,4 @@
+2022-12-08 22:04:58 INFO     utils                Model name: model
+2022-12-08 22:04:58 INFO     rest                 Creating new v2 session for user 'citrez' at 'https://demo-api.ig.com/gateway/deal'
+2022-12-08 22:04:59 INFO     rest                 POST '/session', resp 200
+2022-12-08 22:04:59 INFO     stream               Starting connection with https://demo-apd.marketdatasystems.com

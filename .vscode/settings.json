@@ -3,6 +3,7 @@
     "autoDocstring.docstringFormat":"google-notypes",
     "editor.fontSize": 13,
     "editor.fontLigatures": false,
+    
     // "editor.cursorBlinking": "expand",
     // "editor.cursorSmoothCaretAnimation": true,
     "editor.cursorStyle":"line-thin",
@@ -33,6 +34,20 @@
     "editor.formatOnPaste": true,
     "editor.snippetSuggestions": "top"
 },
+"files.exclude": {
+  "**/__pycache__": true,
+  "**/.history": true,
+  "**/.venv": true,
+  "**/.vscode": true
+},
+"spellright.language": [
+  "en"
+],
+"spellright.documentTypes": [
+  "markdown",
+  "latex",
+  "plaintext"
+],
 
 
 }
