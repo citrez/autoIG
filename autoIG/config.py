@@ -1,4 +1,4 @@
-from autoIG.epics import US_CRUDE_OIL_EPIC
+from enum import Enum
 
 def open_position_config_(epic,size = 1.0):
     return {
@@ -19,3 +19,8 @@ def open_position_config_(epic,size = 1.0):
     "trailing_stop": None,
     "trailing_stop_increment": None,
 }
+
+
+class Source(Enum):
+    IG="IG"
+    YF='YF'

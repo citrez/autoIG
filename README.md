@@ -21,7 +21,11 @@ However often the stream of data comes through, we could resample to 10 second i
 
 TODO:
 Set up tracking and analytics based on IGs API.
-Set up backtesting functionality
+Set up backtesting functionality.
+
+Resample 1 minute intervals (or whatever was used during training), and then take head(1), rather than mean() or something else.
+
+
 
 
 

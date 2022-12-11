@@ -1,4 +1,36 @@
-2022-12-08 22:04:58 INFO     utils                Model name: model
-2022-12-08 22:04:58 INFO     rest                 Creating new v2 session for user 'citrez' at 'https://demo-api.ig.com/gateway/deal'
-2022-12-08 22:04:59 INFO     rest                 POST '/session', resp 200
-2022-12-08 22:04:59 INFO     stream               Starting connection with https://demo-apd.marketdatasystems.com
+2022-12-09 08:32:10 INFO     utils                Model name: model
+2022-12-09 08:32:12 INFO     rest                 Creating new v2 session for user 'citrez' at 'https://demo-api.ig.com/gateway/deal'
+2022-12-09 08:32:13 INFO     rest                 POST '/session', resp 200
+2022-12-09 08:32:13 INFO     stream               Starting connection with https://demo-apd.marketdatasystems.com
+2022-12-09 08:32:34 INFO     deploment            We BUY!
+2022-12-09 08:32:34 INFO     rest                 POST '/positions/otc', resp 200
+2022-12-09 08:32:35 INFO     rest                 GET '/confirms/SDL86LLAZCATZEB', resp 200
+2022-12-09 08:32:35 INFO     deploment            ACCEPTED
+2022-12-09 08:32:35 INFO     deploment            We BUY!
+2022-12-09 08:32:36 INFO     rest                 POST '/positions/otc', resp 200
+2022-12-09 08:32:36 INFO     rest                 GET '/confirms/VA5JMWKGYDWTZEB', resp 200
+2022-12-09 08:32:36 INFO     deploment            ACCEPTED
+2022-12-09 08:32:37 INFO     deploment            We BUY!
+2022-12-09 08:32:37 INFO     rest                 POST '/positions/otc', resp 200
+2022-12-09 08:32:37 INFO     rest                 GET '/confirms/TUB7DVUGQX2TZEB', resp 200
+2022-12-09 08:32:37 INFO     deploment            ACCEPTED
+2022-12-09 08:32:38 INFO     deploment            We BUY!
+2022-12-09 08:32:38 INFO     rest                 POST '/positions/otc', resp 200
+2022-12-09 08:32:38 INFO     rest                 GET '/confirms/95BPXGDKLZATZEB', resp 200
+2022-12-09 08:32:38 INFO     deploment            ACCEPTED
+2022-12-09 08:32:38 INFO     deploment            We BUY!
+2022-12-09 08:32:38 INFO     rest                 POST '/positions/otc', resp 200
+2022-12-09 08:32:38 INFO     rest                 GET '/confirms/R2SCQBFCLGETZEB', resp 200
+2022-12-09 08:32:38 INFO     deploment            ACCEPTED
+2022-12-09 08:32:39 INFO     deploment            We BUY!
+2022-12-09 08:32:39 INFO     rest                 POST '/positions/otc', resp 200
+2022-12-09 08:32:39 INFO     rest                 GET '/confirms/EG7Z7WH42ANTZEB', resp 200
+2022-12-09 08:32:39 INFO     deploment            ACCEPTED
+2022-12-09 08:32:40 INFO     deploment            We BUY!
+2022-12-09 08:32:40 INFO     rest                 POST '/positions/otc', resp 200
+2022-12-09 08:32:40 INFO     rest                 GET '/confirms/PFSLH3R6PCNTZEB', resp 200
+2022-12-09 08:32:40 INFO     deploment            ACCEPTED
+2022-12-09 08:32:43 INFO     deploment            We BUY!
+2022-12-09 08:32:43 INFO     rest                 POST '/positions/otc', resp 200
+2022-12-09 08:32:43 INFO     rest                 GET '/confirms/FKYE2RG96A6TZEB', resp 200
+2022-12-09 08:32:43 INFO     deploment            ACCEPTED

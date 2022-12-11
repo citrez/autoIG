@@ -34,6 +34,11 @@ def generate_target_1(df, goes_up_by, number_of_periods=None) -> pd.Series:
     res = np.select(condlist=condlist, choicelist=choicelist, default=0)
     return res
 
+def generate_target_2(df,number_of_periods=None):
+    "Just trying to predict the level period, i.e 1 min after"
+    return df["BID_OPEN_S1"] / df["ASK_OPEN"]
+
+
 ## For transformation steps
 
 def create_past_ask_Open(df, num=3):
@@ -49,5 +54,40 @@ def fillna_(df):
     return df.fillna(axis =1,method ='ffill')
 
 def normalise_(df):
+    "Normalises (within row) from the current asking price being 1, and all past asking prices normalised"
     return df / df[['ASK_OPEN']].reindex_like(df).fillna(method='ffill',axis = 'columns')
     
+def adapt_YF_data_for_training(df_):
+    df = df_.copy()
+    df.index.name = 'UPDATED_AT'
+    df = df[['Open']].rename(columns = {'Open':'ASK_OPEN'})
+    df['BID_OPEN'] = df['ASK_OPEN'] + 3
+    df = create_future_bid_Open(df,num = 1) # we need this to create the target
+    df['r'] = generate_target_2(df)
+    df = df.dropna()
+    return df
+
+def adapt_IG_data_for_training(df_):
+    """
+    This takes in the historical data used for training and makes it consistent (column name wise etc).
+    With the form of the data being predicted on in production.
+    None: This doesnt actually do any of the pre-propcessing steps, 
+    this is reserved to the pipeline. However, for the pipeline to take place 
+    it needs to be in the right form.
+    Furthermore, the creation of the target it something only done in training 
+    and therefor is not part of any preprocessing step.
+    """
+    df = df_.copy()
+    
+    df.columns = (
+        df.columns.get_level_values(0)
+        + "_"
+        + df.columns.get_level_values(1)
+    )
+    df = df[["ask_Open", "bid_Open"]]
+    df = df.rename(columns={ "ask_Open": "ASK_OPEN","bid_Open": "BID_OPEN"})
+    df.index.name = 'UPDATED_AT'
+    df = create_future_bid_Open(df,num = 1) # we need this to create the target
+    df['r'] = generate_target_2(df)
+    df = df.dropna()
+    return df
