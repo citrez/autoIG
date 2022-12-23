@@ -6,9 +6,9 @@ import logging
 from sklearn.preprocessing import PolynomialFeatures
 from sklearn.pipeline import Pipeline
 from sklearn.linear_model import LinearRegression
-from autoIG import utils, trade, epics
+from autoIG import in, utils, trade
 
-gold_trader = trade.Trader(epics.GOLD_EPIC)
+gold_trader = trade.Trader(in.GOLD_EPIC)
 
 
 def get_open_position_totals():

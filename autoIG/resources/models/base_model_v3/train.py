@@ -1,7 +1,7 @@
 import pandas as pd
 import numpy as np
 import joblib
-from autoIG.epics import Epics,Tickers
+from autoIG.in import Epics,Tickers
 from autoIG.config import Source
 from autoIG.utils import print_shape,ROOT_DIR
 from functools import partial
@@ -22,12 +22,12 @@ from autoIG.modelling import (
 )
 set_config(transform_output="pandas")
 SOURCE = Source["YF"].name
-RELOAD_DATA = False
-SAVE_MODEL = False
+RELOAD_DATA = True
+SAVE_MODEL = True
 model_config = dict()
 model_config["NUMBER_OF_PAST_ASKS"] = 15  # This is for training.
-model_config["EPIC"] = Epics.BITCOIN_EPIC.name
-model_config["TICKER"] = Tickers.BITCOIN_TICKER.name
+model_config["EPIC"] = Epics.US_CRUDE_OIL.value
+model_config["TICKER"] = Tickers.US_CRUDE_OIL.value
 historical_prices_config = dict()
 historical_prices_config["resolution"] = "1Min"
 historical_prices_config["numpoints"] = 500
@@ -105,6 +105,7 @@ y = model_data['r']
 stack.fit(X,y)
 
 if SAVE_MODEL:
+    logging.info('Saving model')
     joblib.dump(stack,'model.pkl')
 # else:
 #     stack = joblib.load(Path(__file__).parent/'model.pkl')

@@ -1,4 +1,4 @@
-from autoIG.epics import Epics
+from autoIG.in import Epics
 from autoIG.utils import (
     load_model,
     parse_item,

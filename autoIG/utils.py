@@ -26,13 +26,12 @@ def read_stream_(file="stream_.csv", nrows=0):
     "Read the persistent stream data and take the last 3 rows"
     df = pd.read_csv(
         path,
-        names=["UPDATED_AT", "BID_OPEN", "ASK_OPEN", 'UPDATED_AT_REAL',"MARKET_STATE"],
-        index_col=0,
-        parse_dates=[3],# after the index has been made
-        dtype={"ASK_OPEN": np.float64, "BID_OPEN": np.float64,"MARKET_STATE":str},
+        # parse_dates=[3],  # after the index has been made
+        # dtype={"ASK_OPEN": np.float64, "BID_OPEN": np.float64, "MARKET_STATE": str},
     )
+    df = df.set_index("UPDATED_AT")
     df.index = pd.to_datetime(df.index)
-    return df.shape[0], df[nrows:]
+    return df[nrows:]
 
 
 def selling_lengths_read_():
@@ -47,24 +46,31 @@ def selling_lengths_write_(num):
     with open(TMP_DIR / "selling_lengths.csv", "a") as f:
         f.write("\n" + str(num))
 
+
 def read_stream_length():
-    with open(TMP_DIR / "stream_length.txt",'r') as f:
+    with open(TMP_DIR / "stream_length.txt", "r") as f:
         l = int(f.read())
-    return l 
+    return l
+
 
 def write_stream_length(l):
-    with open(TMP_DIR / "stream_length.txt",'w') as f:
+    with open(TMP_DIR / "stream_length.txt", "w") as f:
         f.write(str(l))
-        print(f'Stream lenght updated: {l}!')
+        print(f"Stream lenght updated: {l}!")
+
+
+def read_responce_(file=TMP_DIR / "responce_.csv"):
+    "Read the persistent responce data"
+    df = pd.read_csv(
+        file,index_col=0,
+    )
+    df.index = pd.to_datetime(df.index)
+    return df
 
 
 def load_model(path: str):
     full_path = ROOT_DIR / "resources" / "models" / path
-    logging.info(f"Model name: {full_path.stem}")
     return joblib.load(full_path)
-
-
-##
 
 
 def parse_time(time: str):
@@ -79,13 +85,16 @@ def parse_time(time: str):
 
 def parse_item(item) -> pd.DataFrame:
     "Take in a JSON object and parse as df"
-    df= pd.DataFrame(
-        {"BID": item["values"]["BID"], "OFFER": item["values"]["OFFER"],"MARKET_STATE":item["values"]["MARKET_STATE"]},
-        columns=["BID", "OFFER","MARKET_STATE"],
-        index=[parse_time(item["values"]["UPDATE_TIME"])],
+    df = pd.DataFrame(
+        {
+            "UPDATED_AT": [parse_time(item["values"]["UPDATE_TIME"])],
+            "BID_OPEN": item["values"]["BID"],
+            "ASK_OPEN": item["values"]["OFFER"],
+            "MARKET_STATE": item["values"]["MARKET_STATE"],
+        }
     )
 
-    df['UPDATED_AT_REAL'] = datetime.datetime.now()
+    df["UPDATED_AT_REAL"] = datetime.datetime.now()
 
     return df
 

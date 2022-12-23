@@ -25,6 +25,27 @@ Set up backtesting functionality.
 
 Resample 1 minute intervals (or whatever was used during training), and then take head(1), rather than mean() or something else.
 
+RULES:
+Dont save data with indexes, if you want read them in with indexes. 
+
+
+Don’t need to focus on perfecting a model for a stock. Get shape workingshape working then can search predictable socks
+
+Think about data model. Eve prediction has a model ticket associated. Anything else?
+
+Stack of different length tails. Feeding into linear model
+
+Think about data collected. Deal I’d . Bought for. Sold at. Model used
+
+Create models with script with mlflow giving I’d
+
+Set up multiple models in shadow, promote after good performance
+
+Make frequency of incoming data minute by resampling and not taking the most recent
+
+Make a training script, which inputs data and outputs a model. 
+
+I like the idea of using an instance based model. Like KNN regression. We can also use a metric for 'how near' the 5 nearest neibors are to the instance we wish the predict. Only predict when it is near enough. 
 
 
 
