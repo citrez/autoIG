@@ -21,22 +21,20 @@ from autoIG.config import (
 from autoIG.utils import selling_lengths_read_, selling_lengths_write_
 import pandas as pd
 from datetime import timedelta
+from mlflow.sklearn import load_model
 
 # Create a custom logger
 # logger = logging.getLogger(__name__)
 # logger.setLevel('INFO')
 
-
 logging.basicConfig(
     format="%(asctime)s %(levelname)-8s %(module)-20s %(message)s",
     level=logging.INFO,
-    datefmt="%Y-%m-%d %H:%M:%S",
-    # filemode='w',
-    # filename='log.log'
+    datefmt="%Y-%m-%d %H:%M:%S", # filemode='w', filename='log.log'
 )
 
-MODEL_PATH = "base_model_v3/model.pkl"
-model = load_model(MODEL_PATH)
+MODEL_PATH = "/Users/ezracitron/my_projects/auto_IG/mlruns/993369624604660845/c804d0505ffb447ba538023346ca2774/artifacts/model"
+model=load_model(MODEL_PATH)
 write_stream_length(0)
 
 # Set up Subscription
@@ -53,7 +51,6 @@ sub = Subscription(
     items=["L1:" + autoIG_config["epic"]],
     fields=["UPDATE_TIME", "BID", "OFFER", "MARKET_STATE"],
 )
-
 
 def on_update(item):
     """
