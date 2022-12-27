@@ -137,9 +137,3 @@ with mlflow.start_run(run_id=autolog_run.info.run_id) as run:
     mlflow.log_dict(historical_prices_config, "historical_prices_config.json")
 
 print(f"Logged data and model in run {autolog_run.info.run_id}")
-
-# if SAVE_MODEL:
-#     logging.info("Saving model")
-#     joblib.dump(stack, "model.pkl")
-# else:
-#     stack = joblib.load(Path(__file__).parent/'model.pkl')
