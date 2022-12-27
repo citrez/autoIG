@@ -786,7 +786,7 @@ testing = ["flake8", "pytest-cov"]
 
 [[package]]
 name = "mlflow"
-version = "2.0.1"
+version = "2.1.1"
 description = "MLflow: A Platform for ML Development and Productionization"
 category = "main"
 optional = false
@@ -810,7 +810,7 @@ Jinja2 = [
 markdown = ">=3.3,<4"
 matplotlib = "<4"
 numpy = "<2"
-packaging = "<22"
+packaging = "<23"
 pandas = "<2"
 protobuf = ">=3.12.0,<5"
 pyarrow = ">=4.0.0,<11"
@@ -827,7 +827,7 @@ waitress = {version = "<3", markers = "platform_system == \"Windows\""}
 
 [package.extras]
 aliyun-oss = ["aliyunstoreplugin"]
-extras = ["scikit-learn", "pyarrow", "requests-auth-aws-sigv4", "boto3", "google-cloud-storage (>=1.30.0)", "azureml-core (>=1.2.0)", "pysftp", "kubernetes", "mlserver (>=1.2.0.dev13)", "mlserver-mlflow (>=1.2.0.dev13)", "virtualenv", "prometheus-flask-exporter"]
+extras = ["azureml-core (>=1.2.0)", "boto3", "google-cloud-storage (>=1.30.0)", "kubernetes", "mlserver-mlflow (>=1.2.0.dev13)", "mlserver (>=1.2.0.dev13)", "prometheus-flask-exporter", "pyarrow", "pysftp", "requests-auth-aws-sigv4", "scikit-learn", "virtualenv"]
 sqlserver = ["mlflow-dbstore"]
 
 [[package]]
@@ -1920,7 +1920,7 @@ testing = ["pytest (>=6)", "pytest-checkdocs (>=2.4)", "flake8 (<5)", "pytest-co
 [metadata]
 lock-version = "1.1"
 python-versions = "~3.9"
-content-hash = "484e4d73f60803b1cde4074f601d0f57eab3e0a59b34a0db05a0258977a94021"
+content-hash = "00639adeb72bd33a2e9d73b211bb390f52df0fb40d4a7f3ec74ce694dc65afbb"
 
 [metadata.files]
 alembic = []

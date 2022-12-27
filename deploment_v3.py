@@ -20,8 +20,6 @@ from autoIG.config import (
 )
 from autoIG.utils import selling_lengths_read_, selling_lengths_write_
 import pandas as pd
-import mlflow
-import mlflow.sklearn
 from datetime import timedelta
 
 # Create a custom logger

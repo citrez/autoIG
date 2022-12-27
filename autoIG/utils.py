@@ -8,11 +8,14 @@ import logging
 
 
 ROOT_DIR = Path(__file__).parent
-TMP_DIR = ROOT_DIR / "resources" / "tmp"
+TMP_DIR = ROOT_DIR / "resources" / "tmp" # This is in the package
 
 
 def market_series(m) -> tuple[pd.Series]:
-    "Return the instrument, dealing rules and snapshot series, in that order"
+    """
+    We get information about the market using fetch_market_by_epic method.
+    Return the instrument, dealing rules and snapshot series, in that order
+    """
     i = pd.Series(m.instrument)
     d = pd.Series(m.dealingRules)
     s = pd.Series(m.snapshot)

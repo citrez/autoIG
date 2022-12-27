@@ -55,4 +55,4 @@ ig_service_config = {
 
 class Source(Enum):
     IG = "IG"
-    YF = "YF"
+    yahoo_finance = "YF"

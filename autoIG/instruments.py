@@ -6,6 +6,7 @@ class Epics(Enum):
     SANDP = "IX.D.SPTRD.DAILY.IP"
     BITCOIN = "CS.D.BITCOIN.TODAY.IP"
     US_CRUDE_OIL = "CC.D.CL.USS.IP"
+    GBP_USD = "CS.D.GBPUSD.TODAY.IP"
 
 class Tickers(Enum):
     "Tickers for yahoo finance"
