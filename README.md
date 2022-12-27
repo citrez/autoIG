@@ -14,7 +14,9 @@ IG trading dashboard: https://www.ig.com/uk/myig/dashboard
 - [IG REST Reference](https://labs.ig.com/rest-trading-api-reference)
 - [IG Stream Reference](https://labs.ig.com/streaming-api-reference)
 - [Dbdiagram](https://dbdiagram.io/d/62949e0cf040f104c1bff2c0) helps me draw the entity relationship database model. 
-- [Grafana](https://citrez.grafana.net/a/grafana-easystart-app/?src=hg_notification_trial) can be used the monitor databases and produce analytics. 
+- [Grafana](https://citrez.grafana.net/a/grafana-easystart-app/?src=hg_notification_trial) can be used the monitor databases and produce analytics.
+- [IG-markets-api-python-library](https://github.com/ig-python/ig-markets-api-python-library)
+- [IG Dashboard](https://www.ig.com/uk/myig/dashboard)
 
 ### Choices
 Do not use Oanda. Use IG API for making trades. 
