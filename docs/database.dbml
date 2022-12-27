@@ -1,0 +1,255 @@
+Project autoIG {
+  database_type: 'PostgreSQL'
+  Note: 'An automated trading project for use with IG trading'
+}
+// -- LEVEL 1
+// -- Tables and References
+
+table IG.activity {
+  // activities are made up from actions
+  // activities can be on position or limti orders
+  //actions can be ammending, creating, deleting a position
+  channel varchar
+  date datetime
+  dealId varchar
+  epic varchar
+  description varchar
+  details json [note:'These are all the dealIds affetion by the actions of an activity']
+  dealreference varchar
+  direction IG.direction
+}
+
+table stream.price {
+// MERGE
+  epic varchar
+  mid_open float
+  high float
+  low float
+  change float
+  change_pct float
+  update_time datetime
+  market_delay boolean
+  market_state IG.market_state
+  bid float [note: 'I sell for']
+  offer float [note: 'I buy for']
+  NOTE: '''This is a stream of prices for a particular instrument'''
+  
+  
+}
+
+table stream.trade {
+  // DISTINCT
+  affecteddeals json
+  direction IG.direction
+  dealReference varchar
+  dealstatus IG.dealstatus
+  dealId varchar
+  epic varchar
+  level float [note:'instrument price']
+  size float
+  status IG.status
+  NOTE: '''
+  These are the distinct confirms
+  i.e everytime we get a confirm, this returns an item
+  It does not necessariliy need to be open a successfull position.
+  A rejection will show here, but not in OPU table
+  '''
+  
+}
+
+// dealIdOrigin	
+table stream.OPU {
+  // Open position updates (OPU) for an account
+  // DISTINCT
+  date datetime
+  dealId varchar
+  dealReference varchar
+  direction IG.direction
+  level float
+  epic varchar
+  size float
+  status IG.status // This can only take OPENED, UPDATED, DELETED
+  dealstatus IG.dealstatus
+  channel IG.channel
+  currency varchar
+  
+}
+
+// Creating tables
+Table IG.create_open_position_confirms {
+  dealId varchar [pk, note: '''Each buying of a stock has a dealID. It is the permanent deal reference for a confirmed trade''']
+  dealReference varchar [note: '''Transient deal reference for an unconfirmed trade''']
+  dealstatus IG.dealstatus // Defined Enums
+  direction IG.direction 
+  date datetime
+  epic varchar 
+  expiry varchar [note: '''e.g DFB: Daily funded bet. Position remains open until you close it.''']
+  reason varchar
+  status IG.status
+  size float
+  stopDistance float 
+  limitDistance float
+  Note: '''
+  Responce from opening a position.
+  Returns a deal confirmation information for the given deal reference
+  '''
+}
+
+
+Table IG.close_open_position_confirms {
+  dealId varchar [pk]
+  affecteddeals json 
+  date datetime
+  dealstatus IG.dealstatus
+}
+
+// table IG.actions {
+//   dealId varchar 
+//   Note: 'This is for any action on an account. '
+// }
+
+// table IG.confirms {
+//   dealId varchar
+// }
+
+
+Table public.open_position_responce_info {
+  dealId varchar [pk]
+  sell_date datetime [note: 'The datetime I want to sell']
+  model_used varchar
+  prediction float
+}
+
+
+Table position_metrics {
+  dealId varchar [pk]
+  model_used varchar
+  prediction float
+  note: '''Once a position has been opened and closed, we can calculate many things about it, to see how well it did.'''
+}
+
+Table IG.open_positions {
+  dealId varchar [pk]
+  contractSize float8
+  createdDate datetime
+  createdDateUTC datetime
+  dealRefernce varchar
+  size float8
+  direction varchar
+  name varchar
+  continent_name varchar
+  note: '''
+  The currently open poistions.
+  This is actually not a particularly useful table.
+  We can work out returns etc without knowing currently open positions.
+  This can be calculated by looking at the dealID in create_open_position_responce that are not in close_position_responce
+  '''
+ }
+
+Table IG.instrument {
+  epic varchar [pk]
+  expiry varchar
+  name varchar
+  type varchar
+  streamingPricesAvailable bool
+  marketId varchar
+  openingHours date
+  NOTE: 'This is information about the instrument itself'
+}
+
+Table public.raw_stream {
+  // derived from stream.prices
+  epic varchar [pk]
+  updated_at datetime
+  bid_open float
+  ask_open float
+  market_state varchar
+  // note: 'A raw stream of subscription data'
+}
+
+Table public.stream {
+  epic varchar [pk]
+  updated_at datetime
+  bid_open float
+  ask_open float
+  market_state varchar
+  NOTE: 'A resampled (1 min) version of raw_stream'
+}
+
+table IG.transactions {
+  dealId varchar
+  
+  note:'''
+  Transactions are a possition that has been both opened and closed,
+  so we can calculate profit.
+  '''
+}
+
+ref: IG.instrument.epic < raw_stream.epic
+ref: public.open_position_responce_info.dealId - IG.create_open_position_confirms.dealId
+ref: IG.create_open_position_confirms.epic  > IG.instrument.epic
+
+// Level 2 
+// Enums
+
+
+Enum IG.dealstatus {
+  ACCEPTED
+  DECLINED
+}
+
+Enum action_status {
+  ACCEPTED
+  REJECTED
+  UNKNOWN
+}
+
+
+Enum IG.status {
+// action status
+  AMENDED
+  DELETED
+  FULLY_CLOSED
+  UPDATED
+  OPENED
+  PARTIALLY_CLOSED
+  
+}
+
+Enum IG.direction {
+  BUY 
+  SELL
+}
+
+Enum IG.channel {
+  DEALER
+  MOBILE
+  PUBLIC_FIX_API
+  PUBLIC_WEB_API
+  SYSTEM
+  WEB
+}
+
+Enum IG.market_state {
+  CLOSED
+  OFFLINE
+  TRADEABLE
+  EDIT
+  AUCTION
+  AUCTION_NO_EDIT
+  SUSPENDED
+}
+
+Enum IG.type {
+  //activity type
+  EDIT_STOP_AND_LIMIT
+  POSITION
+  SYSTEM
+  WORKING_ORDER
+}
+
+// LEVEL 3 
+// TABLE GROUPINGS
+// tablegroup stream {
+//   stream.trade
+// }
