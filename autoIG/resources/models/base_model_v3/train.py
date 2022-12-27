@@ -24,7 +24,7 @@ from autoIG.utils import print_shape
 
 EXPERIMENT_NAME = "stacked-linear-reg"
 mlflow.set_experiment(EXPERIMENT_NAME)
-mlflow.sklearn.autolog(registered_model_name="stacked-linear-reg-model")
+mlflow.sklearn.autolog(registered_model_name="stacked-linear-reg-model",log_input_examples=True,)
 set_config(transform_output="pandas")
 
 model_config = dict()
@@ -32,7 +32,7 @@ historical_prices_config = dict()
 
 model_config["RELOAD_DATA"] = False
 model_config["SOURCE"] = Source.yahoo_finance.value
-model_config["NUMBER_OF_PAST_ASKS"] = 15  # This is for training.
+# model_config["NUMBER_OF_PAST_ASKS"] = 15  # This is for training.
 model_config["EPIC"] = Epics.US_CRUDE_OIL.value
 model_config["TICKER"] = Tickers.US_CRUDE_OIL.value
 
@@ -135,5 +135,6 @@ with mlflow.start_run(run_id=autolog_run.info.run_id) as run:
     mlflow.log_figure(fig, "predictions_actual_scatter.png")
     mlflow.log_dict(model_config, "model_config.json")
     mlflow.log_dict(historical_prices_config, "historical_prices_config.json")
+    mlflow.log_param('epic',model_config["EPIC"])
 
 print(f"Logged data and model in run {autolog_run.info.run_id}")
