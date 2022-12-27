@@ -9,3 +9,4 @@ __pycache__
 mlruns/
 .python-version
 trading_ig_config.py
+archive/
