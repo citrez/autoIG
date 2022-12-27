@@ -10,11 +10,11 @@ IG_trading (lightweight python wrapper for IG markets API): https://github.com/i
 IG trading dashboard: https://www.ig.com/uk/myig/dashboard
 
 ### Reference
-[IG API Glossary](https://labs.ig.com/glossary)
-[IG REST Reference](https://labs.ig.com/rest-trading-api-reference)
-[IG Stream Reference](https://labs.ig.com/streaming-api-reference)
-[Dbdiagram](https://dbdiagram.io/d/62949e0cf040f104c1bff2c0) helps me draw the entity relationship database model. 
-[Grafana](https://citrez.grafana.net/a/grafana-easystart-app/?src=hg_notification_trial) can be used the monitor databases and produce analytics. 
+- [IG API Glossary](https://labs.ig.com/glossary)
+- [IG REST Reference](https://labs.ig.com/rest-trading-api-reference)
+- [IG Stream Reference](https://labs.ig.com/streaming-api-reference)
+- [Dbdiagram](https://dbdiagram.io/d/62949e0cf040f104c1bff2c0) helps me draw the entity relationship database model. 
+- [Grafana](https://citrez.grafana.net/a/grafana-easystart-app/?src=hg_notification_trial) can be used the monitor databases and produce analytics. 
 
 ### Choices
 Do not use Oanda. Use IG API for making trades. 
