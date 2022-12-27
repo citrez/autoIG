@@ -1,15 +1,15 @@
 from functools import partial
 from pathlib import Path
 
+import matplotlib.pyplot as plt
 import mlflow
+import mlflow.sklearn
 import pandas as pd
 from sklearn import set_config
 from sklearn.ensemble import StackingRegressor
 from sklearn.linear_model import LinearRegression
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import FunctionTransformer
-import matplotlib.pyplot as plt
-
 
 from autoIG.config import Source
 from autoIG.instruments import Epics, Tickers
@@ -20,20 +20,18 @@ from autoIG.modelling import (
     fillna_,
     normalise_,
 )
-
 from autoIG.utils import print_shape
-import mlflow.sklearn
-EXPERIMENT_NAME = 'stacked-linear-reg'
-mlflow.set_experiment(EXPERIMENT_NAME)
 
-mlflow.sklearn.autolog(registered_model_name='stacked-linear-reg-model')
+EXPERIMENT_NAME = "stacked-linear-reg"
+mlflow.set_experiment(EXPERIMENT_NAME)
+mlflow.sklearn.autolog(registered_model_name="stacked-linear-reg-model")
 set_config(transform_output="pandas")
-# SAVE_MODEL = True
+
 model_config = dict()
 historical_prices_config = dict()
 
-model_config['RELOAD_DATA'] = False
-model_config['SOURCE'] = Source.yahoo_finance.value
+model_config["RELOAD_DATA"] = False
+model_config["SOURCE"] = Source.yahoo_finance.value
 model_config["NUMBER_OF_PAST_ASKS"] = 15  # This is for training.
 model_config["EPIC"] = Epics.US_CRUDE_OIL.value
 model_config["TICKER"] = Tickers.US_CRUDE_OIL.value
@@ -41,9 +39,10 @@ model_config["TICKER"] = Tickers.US_CRUDE_OIL.value
 historical_prices_config["resolution"] = "1Min"
 historical_prices_config["numpoints"] = 500
 
-if model_config['RELOAD_DATA']:
-    if model_config['SOURCE'] == "IG":
+if model_config["RELOAD_DATA"]:
+    if model_config["SOURCE"] == "IG":
         from trading_ig.rest import IGService
+
         from autoIG.config import ig_service_config
 
         ig_service = IGService(**ig_service_config)
@@ -53,7 +52,7 @@ if model_config['RELOAD_DATA']:
         )
         model_data = results_["prices"]
         model_data.to_pickle("model_data_ig.pkl")
-    if model_config['SOURCE'] == "YF":
+    if model_config["SOURCE"] == "YF":
         import yfinance as yf
 
         ticker = yf.Ticker(model_config["TICKER"])
@@ -63,14 +62,14 @@ if model_config['RELOAD_DATA']:
         Exception("Please provide source to reload data from: (IG/YF)")
 
 else:
-    if model_config['SOURCE'] == "IG":
+    if model_config["SOURCE"] == "IG":
         model_data = pd.read_pickle(Path(__file__).parent / "model_data_ig.pkl")
-    if model_config['SOURCE'] == "YF":
+    if model_config["SOURCE"] == "YF":
         model_data = pd.read_pickle(Path(__file__).parent / "model_data_yf.pkl")
 
-if model_config['SOURCE'] == "IG":
+if model_config["SOURCE"] == "IG":
     model_data = model_data.pipe(adapt_IG_data_for_training)
-if model_config['SOURCE'] == "YF":
+if model_config["SOURCE"] == "YF":
     model_data = model_data.pipe(adapt_YF_data_for_training)
 model_data.pipe(print_shape)
 
@@ -125,14 +124,17 @@ y = model_data["r"]
 stack.fit(X, y)
 autolog_run = mlflow.last_active_run()
 
-with mlflow.start_run(run_id =autolog_run.info.run_id) as run:
+with mlflow.start_run(run_id=autolog_run.info.run_id) as run:
     for i in range(3):
-        mlflow.log_metric(key='stack__final_estimator___coef_'+str(i),value = stack.final_estimator_.coef_[i])
+        mlflow.log_metric(
+            key="stack__final_estimator___coef_" + str(i),
+            value=stack.final_estimator_.coef_[i],
+        )
     fig, ax = plt.subplots()
-    ax.scatter(stack.predict(X),y)
+    ax.scatter(stack.predict(X), y)
     mlflow.log_figure(fig, "predictions_actual_scatter.png")
-    mlflow.log_dict(model_config,'model_config.json')
-    mlflow.log_dict(historical_prices_config,'historical_prices_config.json')
+    mlflow.log_dict(model_config, "model_config.json")
+    mlflow.log_dict(historical_prices_config, "historical_prices_config.json")
 
 print(f"Logged data and model in run {autolog_run.info.run_id}")
 
