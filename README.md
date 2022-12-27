@@ -3,12 +3,6 @@
 I try to keep documentation as close to code as possible. 
 There is documentation in the DBML. Comments on the code. 
 
-### Data documentation: 
-https://dbdiagram.io/d  
-IG API Docs:  
-IG_trading (lightweight python wrapper for IG markets API): https://github.com/ig-python/ig-markets-api-python-library/blob/master/sample/rest_ig.py  
-IG trading dashboard: https://www.ig.com/uk/myig/dashboard
-
 ### Reference
 - [IG API Glossary](https://labs.ig.com/glossary)
 - [IG REST Reference](https://labs.ig.com/rest-trading-api-reference)
