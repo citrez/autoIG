@@ -98,7 +98,7 @@ table IG.activity {
   '''
 }
 
-Table IG.open_positions {
+table IG.open_positions {
   contractSize float
   continent_name varchar
   createdDate datetime
@@ -114,7 +114,7 @@ Table IG.open_positions {
   '''
  }
 
-Table IG.instrument {
+table IG.instrument {
   epic varchar [pk]
   expiry varchar
   name varchar
@@ -126,7 +126,7 @@ Table IG.instrument {
 }
 
 // PUBLIC SCHEMA //
-Table public.raw_stream {
+table public.raw_stream {
   // derived from stream.prices
   epic varchar [pk]
   updated_at datetime
@@ -136,7 +136,7 @@ Table public.raw_stream {
   // note: 'A raw stream of subscription data'
 }
 
-Table public.stream {
+table public.stream {
   epic varchar [pk]
   updated_at datetime
   bid_open float
@@ -150,13 +150,13 @@ Table public.stream {
 //   dealId varchar
 // }
 
-Table public.to_sell {
+table public.to_sell {
   dealId varchar
   to_sell_date datetime [note: 'The datetime I want to sell']
   sold varchar
 }
 
-Table public.position_metrics {
+table public.position_metrics {
   dealId varchar [pk]
   model_used varchar
   prediction float
@@ -190,7 +190,7 @@ Table public.position_metrics {
 // }
 
 ref: IG.instrument.epic < raw_stream.epic
-ref: public.open_position_responce_info.dealId - IG.create_open_position_confirms.dealId
+// ref: public.open_position_responce_info.dealId - IG.create_open_position_confirms.dealId
 ref: IG.create_open_position_confirms.epic  > IG.instrument.epic
 
 
