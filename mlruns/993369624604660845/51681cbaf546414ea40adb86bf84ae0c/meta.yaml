@@ -1,0 +1,15 @@
+artifact_uri: file:///Users/ezracitron/my_projects/auto_IG/mlruns/993369624604660845/51681cbaf546414ea40adb86bf84ae0c/artifacts
+end_time: 1672099439193
+entry_point_name: ''
+experiment_id: '993369624604660845'
+lifecycle_stage: active
+run_id: 51681cbaf546414ea40adb86bf84ae0c
+run_name: judicious-slug-579
+run_uuid: 51681cbaf546414ea40adb86bf84ae0c
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1672099432603
+status: 3
+tags: []
+user_id: ezracitron

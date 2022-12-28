@@ -1,0 +1,16 @@
+artifact_uri: file:///Users/ezracitron/my_projects/auto_IG/mlruns/993369624604660845/f73b1ccde87147e4bf6f805bc2849edd/artifacts
+deleted_time: 1672099445155
+end_time: 1672097708681
+entry_point_name: ''
+experiment_id: '993369624604660845'
+lifecycle_stage: deleted
+run_id: f73b1ccde87147e4bf6f805bc2849edd
+run_name: marvelous-deer-531
+run_uuid: f73b1ccde87147e4bf6f805bc2849edd
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1672097708618
+status: 4
+tags: []
+user_id: ezracitron

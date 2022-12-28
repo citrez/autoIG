@@ -1,0 +1,15 @@
+artifact_uri: file:///Users/ezracitron/my_projects/auto_IG/mlruns/993369624604660845/1b5cc6b114be42e7b5e5a4b9e12c902a/artifacts
+end_time: 1672099621923
+entry_point_name: ''
+experiment_id: '993369624604660845'
+lifecycle_stage: active
+run_id: 1b5cc6b114be42e7b5e5a4b9e12c902a
+run_name: whimsical-fawn-294
+run_uuid: 1b5cc6b114be42e7b5e5a4b9e12c902a
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1672099613118
+status: 3
+tags: []
+user_id: ezracitron

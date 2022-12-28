@@ -1,0 +1,1 @@
+[('add_past_period_columns', FunctionTransformer(func=functools.partial(<function create_past_ask_Open at 0x11eb47ca0>, num=15))), ('fill_na', FunctionTransformer(func=<function fillna_ at 0x11eb47d30>)), ('normalise', FunctionTransformer(func=<function normalise_ at 0x11eb47dc0>)), ('predictor', LinearRegression())]

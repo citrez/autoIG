@@ -1,0 +1,15 @@
+artifact_uri: file:///Users/ezracitron/my_projects/auto_IG/mlruns/993369624604660845/1551a9a35e25449db5d84628c2537060/artifacts
+end_time: 1672163886379
+entry_point_name: ''
+experiment_id: '993369624604660845'
+lifecycle_stage: active
+run_id: 1551a9a35e25449db5d84628c2537060
+run_name: rare-swan-625
+run_uuid: 1551a9a35e25449db5d84628c2537060
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1672163875499
+status: 3
+tags: []
+user_id: ezracitron

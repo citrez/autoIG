@@ -1,0 +1,15 @@
+artifact_uri: file:///Users/ezracitron/my_projects/auto_IG/mlruns/993369624604660845/5b98a113fcb74878b9b9be13d5b46db3/artifacts
+end_time: 1672093558341
+entry_point_name: ''
+experiment_id: '993369624604660845'
+lifecycle_stage: active
+run_id: 5b98a113fcb74878b9b9be13d5b46db3
+run_name: aged-ox-330
+run_uuid: 5b98a113fcb74878b9b9be13d5b46db3
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1672093543003
+status: 3
+tags: []
+user_id: ezracitron

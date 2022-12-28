@@ -1,0 +1,12 @@
+creation_timestamp: 1672095566501
+current_stage: None
+description: null
+last_updated_timestamp: 1672095566501
+name: stacked-linear-reg-model
+run_id: 0c9ff76be8484c7295904ac7a414af06
+run_link: null
+source: file:///Users/ezracitron/my_projects/auto_IG/mlruns/993369624604660845/0c9ff76be8484c7295904ac7a414af06/artifacts/model
+status: READY
+status_message: null
+user_id: null
+version: 6

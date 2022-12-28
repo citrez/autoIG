@@ -1,0 +1,15 @@
+artifact_uri: file:///Users/ezracitron/my_projects/auto_IG/mlruns/993369624604660845/36e066d63c9d4c998a976b11cd2d8dac/artifacts
+end_time: 1672097110201
+entry_point_name: ''
+experiment_id: '993369624604660845'
+lifecycle_stage: active
+run_id: 36e066d63c9d4c998a976b11cd2d8dac
+run_name: bright-pug-294
+run_uuid: 36e066d63c9d4c998a976b11cd2d8dac
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1672097105200
+status: 3
+tags: []
+user_id: ezracitron

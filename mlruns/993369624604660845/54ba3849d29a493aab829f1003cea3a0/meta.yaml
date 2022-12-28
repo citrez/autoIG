@@ -1,0 +1,16 @@
+artifact_uri: file:///Users/ezracitron/my_projects/auto_IG/mlruns/993369624604660845/54ba3849d29a493aab829f1003cea3a0/artifacts
+deleted_time: 1672099445173
+end_time: 1672097091649
+entry_point_name: ''
+experiment_id: '993369624604660845'
+lifecycle_stage: deleted
+run_id: 54ba3849d29a493aab829f1003cea3a0
+run_name: fortunate-toad-83
+run_uuid: 54ba3849d29a493aab829f1003cea3a0
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1672097086879
+status: 4
+tags: []
+user_id: ezracitron

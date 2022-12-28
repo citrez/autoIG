@@ -1,0 +1,7 @@
+Pipeline(steps=[('add_past_period_columns',
+                 FunctionTransformer(func=functools.partial(<function create_past_ask_Open at 0x12182b5e0>, num=15))),
+                ('fill_na',
+                 FunctionTransformer(func=<function fillna_ at 0x12182b670>)),
+                ('normalise',
+                 FunctionTransformer(func=<function normalise_ at 0x12182b700>)),
+                ('predictor', LinearRegression())])

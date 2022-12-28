@@ -1,0 +1,15 @@
+artifact_uri: file:///Users/ezracitron/my_projects/auto_IG/mlruns/993369624604660845/5eef4c34cb0242b589cb91a06f50b9ca/artifacts
+end_time: 1672096853034
+entry_point_name: ''
+experiment_id: '993369624604660845'
+lifecycle_stage: active
+run_id: 5eef4c34cb0242b589cb91a06f50b9ca
+run_name: unique-owl-897
+run_uuid: 5eef4c34cb0242b589cb91a06f50b9ca
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1672096845680
+status: 3
+tags: []
+user_id: ezracitron

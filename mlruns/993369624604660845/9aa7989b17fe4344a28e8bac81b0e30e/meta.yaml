@@ -1,0 +1,15 @@
+artifact_uri: file:///Users/ezracitron/my_projects/auto_IG/mlruns/993369624604660845/9aa7989b17fe4344a28e8bac81b0e30e/artifacts
+end_time: 1672097000833
+entry_point_name: ''
+experiment_id: '993369624604660845'
+lifecycle_stage: active
+run_id: 9aa7989b17fe4344a28e8bac81b0e30e
+run_name: likeable-shad-266
+run_uuid: 9aa7989b17fe4344a28e8bac81b0e30e
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1672096994884
+status: 3
+tags: []
+user_id: ezracitron

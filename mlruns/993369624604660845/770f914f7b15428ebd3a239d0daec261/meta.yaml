@@ -1,0 +1,16 @@
+artifact_uri: file:///Users/ezracitron/my_projects/auto_IG/mlruns/993369624604660845/770f914f7b15428ebd3a239d0daec261/artifacts
+deleted_time: 1672099436632
+end_time: 1672098683234
+entry_point_name: ''
+experiment_id: '993369624604660845'
+lifecycle_stage: deleted
+run_id: 770f914f7b15428ebd3a239d0daec261
+run_name: suave-pug-94
+run_uuid: 770f914f7b15428ebd3a239d0daec261
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1672098683152
+status: 4
+tags: []
+user_id: ezracitron
