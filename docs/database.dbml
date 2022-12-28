@@ -190,7 +190,7 @@ table public.position_metrics {
 // }
 
 ref: IG.instrument.epic < raw_stream.epic
-ref: IG.stream.epic - IG.raw_stream.epic
+ref: pulic.stream.epic - pulic.raw_stream.epic
 ref: public.position_metrics.dealId - public.to_sell.dealId
 // ref: public.open_position_responce_info.dealId - IG.create_open_position_confirms.dealId
 ref: IG.create_open_position_confirms.epic  > IG.instrument.epic
