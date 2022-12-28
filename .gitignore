@@ -6,7 +6,6 @@ data/
 .DS_Store
 __pycache__
 *.xlsx
-mlruns/
 .python-version
 trading_ig_config.py
 archive/
