@@ -6,9 +6,9 @@ Project autoIG {
   '''
 }
 
-// STREAM SCHEMA
+// STREAM SCHEMA //
 table stream.price {
-// MERGE
+  // MERGE
   epic varchar
   mid_open float
   high float
@@ -59,56 +59,7 @@ table stream.OPU {
   NOTE: '''Open position updates (OPU) for an account'''
 }
 
-// IG SCHEMA
-table IG.activity {
-  channel varchar
-  date datetime
-  dealId varchar
-  description varchar
-  details json [note:'''
-  Think this is a JSON of stream.OPU of the affected positions. An action opens or closed a position?
-  These are all the dealIds affetion by the actions of an activity
-  actiontype e.g POSITION_CLOSED, POSITION_DELETED, POSITION_OPENED, POSITION_PARTIALLY_CLOSED, POSITION_ROLLED
-  ''']
-  dealreference varchar
-  direction IG.direction
-  epic varchar
-  NOTE: '''
-  Activities are made up from actions.
-  Activities can be on position or limit orders.
-  Actions can be ammending, creating, deleting a position
-  '''
-}
-
-Table IG.open_positions {
-  dealId varchar [pk]
-  contractSize float8
-  createdDate datetime
-  createdDateUTC datetime
-  dealRefernce varchar
-  size float8
-  direction varchar
-  name varchar
-  continent_name varchar
-  note: '''
-  The currently open poistions.
-  This is actually not a particularly useful table.
-  We can work out returns etc without knowing currently open positions.
-  This can be calculated by looking at the dealID in create_open_position_responce that are not in close_position_responce
-  '''
- }
-
-Table IG.instrument {
-  epic varchar [pk]
-  expiry varchar
-  name varchar
-  type varchar
-  streamingPricesAvailable bool
-  marketId varchar
-  openingHours date
-  NOTE: 'This is information about the instrument itself'
-}
-
+// IG SCHEMA //
 table IG.transactions {
   closelevel float
   openlevel float
@@ -127,7 +78,54 @@ table IG.transactions {
   '''
 }
 
-// PUBLIC SCHEMA
+table IG.activity {
+  channel varchar
+  date datetime
+  dealId varchar [pk]
+  description varchar
+  details json [note:'''
+  Think this is a JSON of stream.OPU of the affected positions. An action opens or closed a position?
+  These are all the dealIds affetion by the actions of an activity
+  actiontype e.g POSITION_CLOSED, POSITION_DELETED, POSITION_OPENED, POSITION_PARTIALLY_CLOSED, POSITION_ROLLED
+  ''']
+  dealreference varchar
+  direction IG.direction
+  epic varchar
+  NOTE: '''
+  Activities are made up from actions.
+  Activities can be on position or limit orders.
+  Actions can be ammending, creating, deleting a position
+  '''
+}
+
+Table IG.open_positions {
+  contractSize float
+  continent_name varchar
+  createdDate datetime
+  createdDateUTC datetime
+  dealId varchar [pk]
+  dealRefernce varchar
+  direction varchar
+  size float
+  name varchar
+  note: '''
+  The currently open poistions.
+  This can be calculated by looking at the dealID in create_open_position_responce that are not in close_position_responce
+  '''
+ }
+
+Table IG.instrument {
+  epic varchar [pk]
+  expiry varchar
+  name varchar
+  type varchar
+  streamingPricesAvailable bool
+  marketId varchar
+  openingHours date
+  NOTE: 'This is information about the instrument itself'
+}
+
+// PUBLIC SCHEMA //
 Table public.raw_stream {
   // derived from stream.prices
   epic varchar [pk]
@@ -152,17 +150,10 @@ Table public.stream {
 //   dealId varchar
 // }
 
-Table public.open_position_responce_info {
-  dealId varchar [pk]
-  sell_date datetime [note: 'The datetime I want to sell']
-  model_used varchar
-  prediction float
-}
-
 Table public.to_sell {
   dealId varchar
-  sell_datetime datetime
-
+  to_sell_date datetime [note: 'The datetime I want to sell']
+  sold varchar
 }
 
 Table public.position_metrics {
@@ -172,24 +163,24 @@ Table public.position_metrics {
   note: '''Once a position has been opened and closed, we can calculate many things about it, to see how well it did.'''
 }
 
-Table public.create_open_position_confirms {
-  dealId varchar [pk, note: '''Each buying of a instrument has a dealID. It is the permanent deal reference for a confirmed trade''']
-  dealReference varchar [note: '''Transient deal reference for an unconfirmed trade''']
-  dealstatus IG.dealstatus // Defined Enums
-  direction IG.direction 
-  date datetime
-  epic varchar 
-  expiry varchar [note: '''e.g DFB: Daily funded bet. Position remains open until you close it.''']
-  reason varchar
-  status IG.status
-  size float
-  stopDistance float 
-  limitDistance float
-  Note: '''
-  Responce from opening a position.
-  Returns a deal confirmation information for the given deal reference
-  '''
-}
+// table public.create_open_position_confirms {
+//   dealId varchar [pk, note: '''Each buying of a instrument has a dealID. It is the permanent deal reference for a confirmed trade''']
+//   dealReference varchar [note: '''Transient deal reference for an unconfirmed trade''']
+//   dealstatus IG.dealstatus // Defined Enums
+//   direction IG.direction 
+//   date datetime
+//   epic varchar 
+//   expiry varchar [note: '''e.g DFB: Daily funded bet. Position remains open until you close it.''']
+//   reason varchar
+//   status IG.status
+//   size float
+//   stopDistance float 
+//   limitDistance float
+//   Note: '''
+//   Responce from opening a position.
+//   Returns a deal confirmation information for the given deal reference
+//   '''
+// }
 
 // Table public.close_open_position_confirms {
 //   dealId varchar [pk]
@@ -202,10 +193,8 @@ ref: IG.instrument.epic < raw_stream.epic
 ref: public.open_position_responce_info.dealId - IG.create_open_position_confirms.dealId
 ref: IG.create_open_position_confirms.epic  > IG.instrument.epic
 
-// Level 2 
-// Enums
 
-
+// Enums //
 Enum IG.dealstatus {
   ACCEPTED
   DECLINED
@@ -216,7 +205,6 @@ Enum action_status {
   REJECTED
   UNKNOWN
 }
-
 
 Enum IG.status {
 // action status
@@ -261,8 +249,7 @@ Enum IG.activity_type {
   WORKING_ORDER
 }
 
-// LEVEL 3 
-// TABLE GROUPINGS
+// TABLE GROUPINGS //
 // tablegroup stream {
 //   stream.trade
 // }
