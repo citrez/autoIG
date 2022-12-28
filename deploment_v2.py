@@ -1,8 +1,8 @@
-from autoIG.in import Epics
+from autoIG.instruments import Epics
 from autoIG.utils import (
     load_model,
-    parse_item,
-    read_stream_,
+    item_to_df,
+    read_stream,
     TMP_DIR,
     read_stream_length,
     write_stream_length,
@@ -123,9 +123,9 @@ sub = Subscription(
 def on_update(item):
     "Everytime the subscription get new data, this is run"
 
-    parse_item(item).to_csv(TMP_DIR / "raw_stream_.csv", mode="a+", header=False)
+    item_to_df(item).to_csv(TMP_DIR / "raw_stream_.csv", mode="a+", header=False)
 
-    raw_stream_length, raw_stream_ = read_stream_("raw_stream_.csv")
+    raw_stream_length, raw_stream_ = read_stream("raw_stream_.csv")
     # Right now we are resampling everytime time, this is inefficient
     stream_ = (
         raw_stream_.resample(pd.Timedelta(seconds=60)).last().iloc[:-1, :]

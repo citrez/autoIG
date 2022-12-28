@@ -23,7 +23,7 @@ def market_series(m) -> tuple[pd.Series]:
 
 
 ## READ/WRITE I/O
-def read_stream_(file="stream_.csv", nrows=0):
+def read_stream(file="stream_.csv", nrows=0):
     path = TMP_DIR / file
 
     "Read the persistent stream data and take the last 3 rows"
@@ -56,13 +56,14 @@ def read_stream_length():
     return l
 
 
-def write_stream_length(l):
+def write_stream_length(n):
+    """This is needed to only write to stream when it is bigger than before"""
     with open(TMP_DIR / "stream_length.txt", "w") as f:
-        f.write(str(l))
-        print(f"Stream lenght updated: {l}!")
+        f.write(str(n))
+        logging.info(f"New length of stream: {n}")
 
 
-def read_responce_(file=TMP_DIR / "responce_.csv"):
+def read_responce_(file=TMP_DIR / "responce.csv"):
     "Read the persistent responce data"
     df = pd.read_csv(
         file,index_col=0,
@@ -86,7 +87,7 @@ def parse_time(time: str):
     )
 
 
-def parse_item(item) -> pd.DataFrame:
+def item_to_df(item) -> pd.DataFrame:
     "Take in a JSON object and parse as df"
     df = pd.DataFrame(
         {
