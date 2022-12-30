@@ -263,7 +263,10 @@ def on_update(item):
 if __name__ == "__main__":
     sub.addlistener(on_update)
     ig_stream_service.ls_client.subscribe(sub)
-    time.sleep(500)
+    while True:
+        user_input = input('Enter dd to termiate')
+        if user_input == 'dd':
+            break
     ig_stream_service.disconnect()
     # pd.DataFrame().to_csv(TMP_DIR / "stream_.csv", header=False)  # whipe the tmp data
     selling_lengths = list()
