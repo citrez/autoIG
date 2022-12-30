@@ -234,15 +234,26 @@ def on_update(item):
         #     )
         #5
         to_sell = pd.read_csv(TMP_DIR/'to_sell.csv')
-        from datetime import datetime
-        bool = (pd.to_datetime(to_sell.to_sell_date) < datetime.now()) & (to_sell.sold ==False)
-        for i in to_sell[bool].dealId:
+        current_time =datetime.now()
+
+        need_to_sell_bool =(pd.to_datetime(to_sell.to_sell_date) < current_time)
+        sell_bool = need_to_sell_bool  & (to_sell.sold ==False)
+        logging.info(f"Time now is: {datetime.now()}")
+        for i in to_sell[sell_bool].dealId:
             logging.info(f"Closing a position {i}")
             resp = ig_service.close_open_position(
                 **close_position_config_(dealId=i)
             )
+            sold = pd.DataFrame(
+                {
+                    'dealId':[i],
+                    'dealreference':[resp['dealReference']], # closing reference
+                    "dealId": [resp["dealId"]],
+                }
+                )
+            append_with_header(sold, "sold.csv")
         # update
-        to_sell.sold = bool
+        to_sell.sold = need_to_sell_bool
         to_sell.to_csv(
                 TMP_DIR /'to_sell.csv', mode="w", header=True, index=False
             )
