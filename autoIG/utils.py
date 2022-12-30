@@ -36,20 +36,6 @@ def read_stream(file="stream_.csv", nrows=0):
     df.index = pd.to_datetime(df.index)
     return df[nrows:]
 
-
-def selling_lengths_read_():
-    with open(TMP_DIR / "selling_lengths.csv", "r") as f:
-        selling_lengths = f.read().split("\n")[1:]  # first row is empty ''
-    # if selling_lengths == ['']:
-    #     return list()
-    return [int(i) for i in selling_lengths]
-
-
-def selling_lengths_write_(num):
-    with open(TMP_DIR / "selling_lengths.csv", "a") as f:
-        f.write("\n" + str(num))
-
-
 def read_stream_length():
     with open(TMP_DIR / "stream_length.txt", "r") as f:
         l = int(f.read())
