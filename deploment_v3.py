@@ -1,4 +1,5 @@
 from autoIG.instruments import Epics
+from datetime import datetime
 from autoIG.utils import (
     load_model,
     item_to_df,
@@ -18,7 +19,7 @@ from autoIG.config import (
     close_position_config_,
     ig_service_config,
 )
-from autoIG.utils import selling_lengths_read_, selling_lengths_write_
+# from autoIG.utils import selling_lengths_read_, selling_lengths_write_
 import pandas as pd
 from datetime import timedelta
 from mlflow.sklearn import load_model
@@ -44,7 +45,7 @@ ig_stream_service.create_session()
 
 autoIG_config = dict()
 autoIG_config["r_threshold"] = 0.9
-autoIG_config["epic"] = Epics.GBP_USD.value
+autoIG_config["epic"] = Epics.US_CRUDE_OIL.value
 autoIG_config['close_after_x_mins'] = 3
 
 
@@ -60,8 +61,8 @@ def on_update(item):
     Everytime the subscription get new data, this is run
 
     1. Load in IG price stream -
-    1. Process the raw stream of subscription.
-    Need to get it in the form needed for predictions. 1 row per min
+    2. Process the raw stream of subscription.
+       Need to get it in the form needed for predictions. 1 row per min
 
     """
     if item['values']["MARKET_STATE"] != "TRADEABLE":
@@ -115,7 +116,8 @@ def on_update(item):
         # 3. Check if new prediction warrents buying and buy
         # 4. record information about the buy
         # 4. Check if now we need to sell anything
-        latest_updated_at = stream.tail(1).index.values[0]
+        
+        # latest_updated_at = stream.tail(1).index.values[0]
         #1
         write_stream_length(stream_length)
 
@@ -270,3 +272,4 @@ if __name__ == "__main__":
     ig_stream_service.disconnect()
     # pd.DataFrame().to_csv(TMP_DIR / "stream_.csv", header=False)  # whipe the tmp data
     selling_lengths = list()
+    # sell all open positions to clean up 
