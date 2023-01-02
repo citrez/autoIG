@@ -7,7 +7,8 @@ There is documentation in the DBML. Comments on the code.
 - [IG API Glossary](https://labs.ig.com/glossary)
 - [IG REST Reference](https://labs.ig.com/rest-trading-api-reference)
 - [IG Stream Reference](https://labs.ig.com/streaming-api-reference)
-- [Dbdiagram](https://dbdiagram.io/d/62949e0cf040f104c1bff2c0) helps me draw the entity relationship database model. 
+- [Database diagram](https://dbdocs.io/citrez/autoIG)
+  - run `dbml verify` then `dbml build` to build the entity relationship diagram
 - [Grafana](https://citrez.grafana.net/a/grafana-easystart-app/?src=hg_notification_trial) can be used the monitor databases and produce analytics.
 - [IG-markets-api-python-library](https://github.com/ig-python/ig-markets-api-python-library)
 - [IG Dashboard](https://www.ig.com/uk/myig/dashboard)
@@ -16,13 +17,19 @@ There is documentation in the DBML. Comments on the code.
 Do not use Oanda. Use IG API for making trades. 
 
 Arrange into proper docs:
-Set LIMIT and STOP losses on all trades.
+Set LIMIT and STOP losses on all trades. Each trade lasts 3 mins, as set out in the training 
 However often the stream of data comes through, we could resample to 10 second intervals, so a) the price is sufficiently different. b) we are not predicting all the time. If we need 3 signals, we only predict every 30 seconds. 
 
 ### TODO
 Set up tracking and analytics based on IGs API.
 Set up backtesting functionality.
 Resample 1 minute intervals (or whatever was used during training), and then take head(1), rather than mean() or something else.
+You have it working with one model. Make everything as easy to deploy multiple models as possible. 
+Can I clean up deployment script the plug and play with any model?
+Get a train test split going in training and track test scores with mlflow
+Move your amateur csv files to a sqllite database
+make new training script with knn model. 
+Make it so that we can buy and sell, the only thing that matters is how certain we are.
 
 ### RULES
 Don't save data with indexes, if you want read them in with indexes. 

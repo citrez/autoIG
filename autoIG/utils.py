@@ -1,19 +1,17 @@
-import datetime
+from datetime import datetime
 from IPython.display import display
 import pandas as pd
-import numpy as np
 from pathlib import Path
 import joblib
 import logging
 
-
+# Paths
 ROOT_DIR = Path(__file__).parent
-TMP_DIR = ROOT_DIR / "resources" / "tmp" # This is in the package
-
+TMP_DIR = ROOT_DIR / "resources" / "tmp" # This is in the package TODO: Move outside package
 
 def market_series(m) -> tuple[pd.Series]:
     """
-    We get information about the market using fetch_market_by_epic method.
+    We get information about the market using IG's `fetch_market_by_epic` method.
     Return the instrument, dealing rules and snapshot series, in that order
     """
     i = pd.Series(m.instrument)
@@ -48,30 +46,28 @@ def write_stream_length(n):
         f.write(str(n))
         logging.info(f"New length of stream: {n}")
 
+# We can get responce from activity IG table
+# def read_responce_(file=TMP_DIR / "responce.csv"):
+#     "Read the persistent responce data"
+#     df = pd.read_csv(
+#         file,index_col=0,
+#     )
+#     df.index = pd.to_datetime(df.index)
+#     return df
 
-def read_responce_(file=TMP_DIR / "responce.csv"):
-    "Read the persistent responce data"
-    df = pd.read_csv(
-        file,index_col=0,
-    )
-    df.index = pd.to_datetime(df.index)
-    return df
-
-
-def load_model(path: str):
-    full_path = ROOT_DIR / "resources" / "models" / path
-    return joblib.load(full_path)
-
+# DEPRECIATED. Get MLflow to save models automatically
+# def load_model(path: str):
+#     full_path = ROOT_DIR / "resources" / "models" / path
+#     return joblib.load(full_path)
 
 def parse_time(time: str):
     """
     Add todays date and turn into datetime object.
     Time must be in this format: '16:32:16'
     """
-    return datetime.datetime.strptime(
-        str(datetime.datetime.now().date()) + " " + time, "%Y-%m-%d %H:%M:%S"
+    return datetime.strptime(
+        str(datetime.now().date()) + " " + time, "%Y-%m-%d %H:%M:%S"
     )
-
 
 def item_to_df(item) -> pd.DataFrame:
     "Take in a JSON object and parse as df"
@@ -84,14 +80,15 @@ def item_to_df(item) -> pd.DataFrame:
         }
     )
 
-    df["UPDATED_AT_REAL"] = datetime.datetime.now()
-
+    df["UPDATED_AT_REAL"] = datetime.now()
     return df
 
 
-def format_date(d: datetime.datetime):
-    return d.strftime("%Y-%m-%d")
-
+# def format_date(d: datetime.datetime):
+#     return d.strftime("%Y-%m-%d")
+    
+def mins_to_ms(m = 1):
+    return 1000*60*m
 
 def standardise_column_names(df: pd.DataFrame):
     df_new = df.copy()
@@ -103,11 +100,9 @@ def to_hours(td):
     "Gives the number of hours diffreence between two timedeltas"
     return td.days * 24 + td.seconds // 3600
 
-
 def display_df(df, n=1):
     display(df.head(n))
     return df
-
 
 def print_shape(df):
     print(f"Shape: {df.shape[0]:,} {df.shape[1]:,}")
