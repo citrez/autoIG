@@ -4,6 +4,7 @@ from pathlib import Path
 import matplotlib.pyplot as plt
 import mlflow
 import mlflow.sklearn
+import mlflow.models
 import pandas as pd
 from sklearn import set_config
 from sklearn.ensemble import StackingRegressor
@@ -164,6 +165,16 @@ with mlflow.start_run(
     # run_id= autolog_run.info.run_id
     description = 'This is a description of the model run'
     ) as run:
+    model_uri = f"runs:/{run.info.run_id}/{MODEL_NAME}"
+    # mlflow.register_model(model_uri=model_uri,name='stacked-linear-reg-model')
+    mlflow.sklearn.log_model(
+        sk_model=stack,
+        artifact_path="sklearn-model",
+        registered_model_name=MODEL_NAME,
+        input_example=X_train.iloc[0:3,:],
+        signature = mlflow.models.infer_signature(X_train.iloc[0:5,:],stack.predict(X_train.iloc[0:5,:]))
+    )
+
     for i in range(3):
         mlflow.log_metric("stack__final_estimator___coef_" + str(i),stack.final_estimator_.coef_[i],)
     fig, ax = plt.subplots()
@@ -200,7 +211,6 @@ with mlflow.start_run(
     stack.score(X_train,y_train) # Just calling this, mlflow autologger logs it  
     stack.score(X_test,y_test) # Just calling this, mlflow autologger logs it 
     mlflow.log_metric('testing_mean_absoloute_error',mean_absolute_error(y_pred=stack.predict(X_test),y_true = y_test) )# Just calling this, mlflow autologger logs it 
-    mlflow.register_model(run.info.run_id,'stacked-linear-reg-model')
 
 
 
