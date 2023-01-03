@@ -1,7 +1,7 @@
 from autoIG.instruments import Epics
 from autoIG.utils import (
     load_model,
-    item_to_df,
+    prices_stream_responce,
     read_stream,
     TMP_DIR,
     read_stream_length,
@@ -123,7 +123,7 @@ sub = Subscription(
 def on_update(item):
     "Everytime the subscription get new data, this is run"
 
-    item_to_df(item).to_csv(TMP_DIR / "raw_stream_.csv", mode="a+", header=False)
+    prices_stream_responce(item).to_csv(TMP_DIR / "raw_stream_.csv", mode="a+", header=False)
 
     raw_stream_length, raw_stream_ = read_stream("raw_stream_.csv")
     # Right now we are resampling everytime time, this is inefficient
