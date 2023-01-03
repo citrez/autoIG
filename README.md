@@ -26,10 +26,12 @@ Set up backtesting functionality.
 Resample 1 minute intervals (or whatever was used during training), and then take head(1), rather than mean() or something else.
 You have it working with one model. Make everything as easy to deploy multiple models as possible. 
 Can I clean up deployment script the plug and play with any model?
-Get a train test split going in training and track test scores with mlflow
+Get a train test split going in training and track test scores with mlflow DONE
 Move your amateur csv files to a sqllite database
 make new training script with knn model. 
 Make it so that we can buy and sell, the only thing that matters is how certain we are.
+We cant just do a shift to get last few prices because that may be between days?
+
 
 ### RULES
 Don't save data with indexes, if you want read them in with indexes. 
@@ -55,6 +57,9 @@ ASK: What I buy for
 OFFER: I sell for
 
 ### Explanation in simple terms
+
+### Hints
+Use `watch -n 1 tail /Users/ezracitron/my_projects/auto_IG/autoIG/resources/tmp/raw_stream.csv` to set up looking at raw stream
 
 
 
