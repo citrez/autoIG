@@ -4,6 +4,7 @@ import pandas as pd
 from pathlib import Path
 import joblib
 import logging
+import os
 
 # Paths
 ROOT_DIR = Path(__file__).parent
@@ -69,7 +70,7 @@ def parse_time(time: str):
         str(datetime.now().date()) + " " + time, "%Y-%m-%d %H:%M:%S"
     )
 
-def item_to_df(item) -> pd.DataFrame:
+def prices_stream_responce(item) -> pd.DataFrame:
     "Take in a JSON object and parse as df"
     df = pd.DataFrame(
         {
@@ -80,12 +81,17 @@ def item_to_df(item) -> pd.DataFrame:
         }
     )
 
-    df["UPDATED_AT_REAL"] = datetime.now()
+    # df["UPDATED_AT_REAL"] = datetime.now()
     return df
 
+def append_with_header(df, file):
+    if os.path.getsize(TMP_DIR / file) == 0:
+        df.to_csv(TMP_DIR / file, mode="a+", header=True, index=False)
+    else:
+        df.to_csv(TMP_DIR / file, mode="a+", header=False, index=False)
 
-# def format_date(d: datetime.datetime):
-#     return d.strftime("%Y-%m-%d")
+
+
     
 def mins_to_ms(m = 1):
     return 1000*60*m
