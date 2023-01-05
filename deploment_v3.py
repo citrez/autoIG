@@ -8,7 +8,8 @@ from autoIG.utils import (
     read_stream_length,
     write_stream_length,
 )
-import os
+from autoIG.create_data import write_to_transations_joined
+
 import logging
 from autoIG.utils import append_with_header
 from trading_ig import IGService, IGStreamService
@@ -45,15 +46,19 @@ ig_stream_service.create_session()
 # the less the better, should be able to pick up a model and run
 autoIG_config = dict()
 autoIG_config["r_threshold"] = 0.9
-autoIG_config["epic"] = Epics.US_CRUDE_OIL.value
+autoIG_config[
+    "epic"
+] = Epics.US_CRUDE_OIL.value  # market only open to trading until 10pm
 autoIG_config["close_after_x_mins"] = 3
 autoIG_config["stream_length_needed"] = 3
+deployment_start = datetime.now()
 
 sub = Subscription(
     mode="MERGE",
     items=["L1:" + autoIG_config["epic"]],
     fields=["UPDATE_TIME", "BID", "OFFER", "MARKET_STATE"],
 )
+
 
 def on_update(item):
     """
@@ -71,7 +76,7 @@ def on_update(item):
         print(f"Market state: {item['values']['MARKET_STATE']}")
         raise Exception("Market not open for trading")
 
-    # TODO @citrez #4  Change raw_stream name to price_stream 
+    # TODO @citrez #4  Change raw_stream name to price_stream
     # TODO: #3 Change stream to price_stream_resampled
 
     append_with_header(prices_stream_responce(item), "raw_stream.csv")
@@ -79,7 +84,12 @@ def on_update(item):
     # raw_stream_length = raw_stream_.shape[0]
     # We are resampling everytime time, this is inefficient
     # Dont take the last one since it is not complete yet.
-    stream = raw_stream.resample(pd.Timedelta(seconds=60),label = 'right').last().iloc[:-1, :]
+    stream = (
+        raw_stream.resample(pd.Timedelta(seconds=60), label="right")
+        .last()
+        .dropna()  # since if there is a gap in raw stream all the intermediate resamples are filled with nas
+        .iloc[:-1, :]
+    )
     stream.to_csv(TMP_DIR / "stream.csv", mode="w", header=True)
     stream_length = stream.shape[0]
 
@@ -122,13 +132,13 @@ def on_update(item):
                     "prediction": [latest_prediction],
                     "model_used": [MODEL_PATH],
                     "buy_date": [pd.to_datetime(resp["date"])],
-                    'buy_level_resp': [resp['level']]
+                    "buy_level_resp": [resp["level"]]
                     # We get this from transactions, but doulbe check
                 }
             )
             to_sell = pd.DataFrame(
                 {
-                    "dealreference": [resp["dealReference"]],
+                    # "dealreference": [resp["dealReference"]],
                     "dealId": [resp["dealId"]],
                     "to_sell_date": [
                         (
@@ -160,22 +170,35 @@ def on_update(item):
                     "dealId": [i],
                     "dealreference": [resp["dealReference"]],  # closing reference
                     "dealId": [resp["dealId"]],
-                    'close_level_resp':resp['level'], # These should come from IG.transactions, but just checking
-                    'profit_resp': resp['profit'] # These should come from IG.transactions, but just checking
+                    "close_level_resp": resp[
+                        "level"
+                    ],  # These should come from IG.transactions, but just checking
+                    "profit_resp": resp[
+                        "profit"
+                    ],  # These should come from IG.transactions, but just checking
                 }
             )
             append_with_header(sold, "sold.csv")
         # update
         to_sell.sold = need_to_sell_bool
         to_sell.to_csv(TMP_DIR / "to_sell.csv", mode="w", header=True, index=False)
-    return None
+
+        mins_since_deployment = int(
+            (deployment_start - current_time).total_seconds() / 60
+        )
+
+        write_to_transations_joined(mins_ago=mins_since_deployment + 360)
+
+    return "hi"
 
 
 if __name__ == "__main__":
-    sub.addlistener(on_update)
-    ig_stream_service.ls_client.subscribe(sub)
+    _ = sub.addlistener(on_update)
+    print(_)
+    _ = ig_stream_service.ls_client.subscribe(sub)
+    print(_)
     while True:
-        user_input = input("Enter dd to termiate")
+        user_input = input("Enter dd to termiate: ")
         if user_input == "dd":
             break
     ig_stream_service.disconnect()
