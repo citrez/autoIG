@@ -2,7 +2,17 @@ Project autoIG {
   database_type: 'PostgreSQL'
   Note: '''
   An automated trading project for use with IG trading
+  build UI with `dbdocs validate docs/database.dbml` then `dbdocs build docs/database.dbml`
   Open here for a UI: https://dbdocs.io/citrez/autoIG
+
+  SCHEMA DESCRIPTIONS:
+  tmp: Where temporary tables are kept. They are needed for trading but do not need to be persiseted once the data has been processed
+  public: Tables i make and use
+  stream: IG streams
+  IG: IG rest API
+
+  The first two are my creation. The second two are IG's
+
   '''
 }
 
@@ -43,7 +53,9 @@ table stream.trade {
 }
 
 // dealIdOrigin	What is this?
+
 table stream.OPU {
+  // Open position updates
   // DISTINCT
   channel IG.channel
   currency varchar
@@ -56,25 +68,26 @@ table stream.OPU {
   level float
   status IG.status // This can only take OPENED, UPDATED, DELETED
   size float
-  NOTE: '''Open position updates (OPU) for an account'''
+  NOTE: '''Open position updates (OPU) for an account. This is the stream for activity?'''
 }
 
 // IG SCHEMA //
+
 table IG.transactions {
-  closelevel float
+  closelevel float [note: 'Price deal closed at']
   currency varchar
-  date datetime
-  dateutc datetime
-  openlevel float
-  opendateutc datetime
-  period varchar
-  profitandloss float
-  reference varchar [pk] //closing reference // this can be joined to dealId?
+  date date [note: 'This is not a datetime, better to join to activity to get datetime of closing/opening position']
+  dateutc date
+  openlevel float [note: 'Price deal opened at']
+  opendateutc date
+  period varchar [note: 'e.g daily funded bet (DFB)']
+  profitandloss float [note: '(closelevel-openlevel)*size']
+  reference varchar [pk, note: 'The dealId of the closing deal']
   size float
   transationtype varchar
   note:'''
   Transactions are a possition that has been both opened and closed.
-  So we can calculate profit.
+  So we can calculate profit
   '''
 }
 
@@ -110,7 +123,8 @@ table IG.open_positions {
   name varchar
   note: '''
   The currently open poistions.
-  This can be calculated by looking at the dealID in create_open_position_responce that are not in close_position_responce
+  This can be calculated by looking at the dealID in create_open_position_responce 
+  that are not in close_position_responce
   '''
  }
 
@@ -125,9 +139,10 @@ table IG.instrument {
   NOTE: 'This is information about the instrument itself'
 }
 
-// PUBLIC SCHEMA //
-table public.raw_stream {
-  // derived from stream.prices
+// TMP SCHEMA //
+
+table tmp.raw_stream {
+  // derived from stream.prices // this raw data stream doesnt need to be saved
   epic varchar [pk]
   updated_at datetime
   bid_open float
@@ -135,6 +150,8 @@ table public.raw_stream {
   market_state varchar
   // note: 'A raw stream of subscription data'
 }
+
+// PUBLIC SCHEMA //
 
 table public.stream {
   epic varchar [pk]
@@ -150,10 +167,14 @@ table public.stream {
 //   dealId varchar
 // }
 
-table public.to_sell {
+table tmp.to_sell {
   dealId varchar
   to_sell_date datetime [note: 'The datetime I want to sell']
   sold varchar
+  note: '''
+  This table describes, for each dealId (which is the dealId of an opening activity).
+  When should it be sold
+  '''
 }
 
 table public.position_metrics {
@@ -163,7 +184,7 @@ table public.position_metrics {
   note: '''Once a position has been opened and closed, we can calculate many things about it, to see how well it did.'''
 }
 
-// table public.create_open_position_confirms {
+// table responce.create_open_position_confirms {
 //   dealId varchar [pk, note: '''Each buying of a instrument has a dealID. It is the permanent deal reference for a confirmed trade''']
 //   dealReference varchar [note: '''Transient deal reference for an unconfirmed trade''']
 //   dealstatus IG.dealstatus // Defined Enums
@@ -187,10 +208,25 @@ table public.position_metrics {
 //   affecteddeals json 
 //   date datetime
 //   dealstatus IG.dealstatus
-// }
+// status
+// reason
+// epic
+// expiry
+// dealReference
+// level
+// size
+// direction
+// stopLevel
+// limitLevel
+// stopDistance
+// limitDistance
+// guaranteedStop
+// trailingStop
+// profit
+// profitCurrency
 
-ref: IG.instrument.epic < raw_stream.epic
-ref: public.stream.epic - public.raw_stream.epic
+ref: IG.instrument.epic < tmp.raw_stream.epic
+ref: public.stream.epic - tmp.raw_stream.epic
 ref: public.position_metrics.dealId - public.to_sell.dealId
 // ref: public.open_position_responce_info.dealId - IG.create_open_position_confirms.dealId
 // ref: IG.create_open_position_confirms.epic  > IG.instrument.epic
