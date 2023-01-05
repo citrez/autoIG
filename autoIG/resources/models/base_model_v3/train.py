@@ -80,11 +80,22 @@ else:
     if model_config["SOURCE"] == "YF":
         model_data = pd.read_pickle(Path(__file__).parent / "model_data_yf.pkl")
 
-from autoIG.modelling import create_future_bid_Open,generate_target
+from autoIG.modelling import create_future_bid_Open, generate_target
+
 if model_config["SOURCE"] == "IG":
-    model_data = model_data.pipe(adapt_IG_data_for_training).pipe(create_future_bid_Open).pipe(generate_target).dropna() # we need this to create the target)
+    model_data = (
+        model_data.pipe(adapt_IG_data_for_training)
+        .pipe(create_future_bid_Open)
+        .pipe(generate_target)
+        .dropna()
+    )  # we need this to create the target)
 if model_config["SOURCE"] == "YF":
-    model_data = model_data.pipe(adapt_YF_data_for_training).pipe(create_future_bid_Open).pipe(generate_target).dropna()
+    model_data = (
+        model_data.pipe(adapt_YF_data_for_training)
+        .pipe(create_future_bid_Open)
+        .pipe(generate_target)
+        .dropna()
+    )
 model_data.pipe(print_shape)
 
 create_past_ask_Open_num_small = partial(create_past_ask_Open, num=3)
@@ -153,65 +164,83 @@ stack = StackingRegressor(
 
 TEST_SIZE = 100
 train = model_data.iloc[TEST_SIZE:, :]
-test = model_data.iloc[0:TEST_SIZE, :] # From the begining, we want the best data to be used in training
+test = model_data.iloc[
+    0:TEST_SIZE, :
+]  # From the begining, we want the best data to be used in training
 X_train = train[["ASK_OPEN"]]
 y_train = train["r"]
 X_test = test[["ASK_OPEN"]]
 y_test = test["r"]
 stack.fit(X_train, y_train)
 # autolog_run = mlflow.last_active_run()
-with mlflow.start_run( 
+with mlflow.start_run(
     # Uses experiment set in mlflow.set_experiment
     # run_id= autolog_run.info.run_id
-    description = 'This is a description of the model run'
-    ) as run:
+    description="This is a description of the model run"
+) as run:
     model_uri = f"runs:/{run.info.run_id}/{MODEL_NAME}"
     # mlflow.register_model(model_uri=model_uri,name='stacked-linear-reg-model')
     mlflow.sklearn.log_model(
         sk_model=stack,
         artifact_path="sklearn-model",
         registered_model_name=MODEL_NAME,
-        input_example=X_train.iloc[0:3,:],
-        signature = mlflow.models.infer_signature(X_train.iloc[0:5,:],stack.predict(X_train.iloc[0:5,:]))
+        input_example=X_train.iloc[0:3, :],
+        signature=mlflow.models.infer_signature(
+            X_train.iloc[0:5, :], stack.predict(X_train.iloc[0:5, :])
+        ),
     )
 
     for i in range(3):
-        mlflow.log_metric("stack__final_estimator___coef_" + str(i),stack.final_estimator_.coef_[i],)
+        mlflow.log_metric(
+            "stack__final_estimator___coef_" + str(i),
+            stack.final_estimator_.coef_[i],
+        )
     fig, ax = plt.subplots()
-    ax.scatter(y_train,stack.predict(X_train))
-    plt.xlabel('actual')
-    plt.ylabel('prediction')
+    ax.scatter(y_train, stack.predict(X_train))
+    plt.xlabel("actual")
+    plt.ylabel("prediction")
     mlflow.log_figure(fig, "training_predictions_scatter.png")
 
     fig, ax = plt.subplots()
-    ax.scatter( y_test,stack.predict(X_test))
-    plt.xlabel('actual')
-    plt.ylabel('prediction')
+    ax.scatter(y_test, stack.predict(X_test))
+    plt.xlabel("actual")
+    plt.ylabel("prediction")
     mlflow.log_figure(fig, "testing_predictions_scatter.png")
 
     fig, ax = plt.subplots()
-    bins = int(len(y_train)*0.01)
-    plt.hist([y_train,stack.predict(X_train)],bins = bins, alpha = 0.5,label = ['actual','predictions'])
-    plt.legend(loc='upper right')
+    bins = int(len(y_train) * 0.01)
+    plt.hist(
+        [y_train, stack.predict(X_train)],
+        bins=bins,
+        alpha=0.5,
+        label=["actual", "predictions"],
+    )
+    plt.legend(loc="upper right")
     mlflow.log_figure(fig, "predicted_histogram.png")
 
     fig, ax = plt.subplots()
-    ax.scatter(y_train,(y_train - stack.predict(X_train) ) )
+    ax.scatter(y_train, (y_train - stack.predict(X_train)))
     mlflow.log_figure(fig, "training_error_size.png")
 
     fig, ax = plt.subplots()
-    ax.scatter(y_test,y_test - stack.predict(X_test))
+    ax.scatter(y_test, y_test - stack.predict(X_test))
     mlflow.log_figure(fig, "testing_error_size.png")
 
-    mlflow.log_metric('training_frequency', (stack.predict(X_train)>1.01).sum()/ len(X_train) )
-    mlflow.log_metric('testing_frequency', (stack.predict(X_test)>1.01).sum()/ len(X_test) )
-    mlflow.log_param('final_estimator',stack.final_estimator)
+    mlflow.log_metric(
+        "training_frequency", (stack.predict(X_train) > 1.01).sum() / len(X_train)
+    )
+    mlflow.log_metric(
+        "testing_frequency", (stack.predict(X_test) > 1.01).sum() / len(X_test)
+    )
+    mlflow.log_param("final_estimator", stack.final_estimator)
     mlflow.log_dict(model_config, "model_config.json")
     mlflow.log_dict(historical_prices_config_ig, "historical_prices_config.json")
-    stack.score(X_train,y_train) # Just calling this, mlflow autologger logs it  
-    stack.score(X_test,y_test) # Just calling this, mlflow autologger logs it 
-    mlflow.log_metric('testing_mean_absoloute_error',mean_absolute_error(y_pred=stack.predict(X_test),y_true = y_test) )# Just calling this, mlflow autologger logs it 
-
+    stack.score(X_train, y_train)  # Just calling this, mlflow autologger logs it
+    stack.score(X_test, y_test)  # Just calling this, mlflow autologger logs it
+    mlflow.log_metric(
+        "testing_mean_absoloute_error",
+        mean_absolute_error(y_pred=stack.predict(X_test), y_true=y_test),
+    )  # Just calling this, mlflow autologger logs it
 
 
 print(f"Logged data and model in run {run.info.run_id}")
