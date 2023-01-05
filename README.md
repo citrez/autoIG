@@ -2,6 +2,12 @@
 
 I try to keep documentation as close to code as possible. 
 There is documentation in the DBML. Comments on the code. 
+## Getting started
+start grafana with `./bin/grafana-server web ` in the grafana repo
+Start a local server on port 8000 using `python3 -m http.server` in the tmp folder. 
+TODO: Make this in root dir 
+Start mlflow using `mlflow ui` command
+
 
 ### Reference
 - [IG API Glossary](https://labs.ig.com/glossary)
@@ -21,16 +27,26 @@ Set LIMIT and STOP losses on all trades. Each trade lasts 3 mins, as set out in 
 However often the stream of data comes through, we could resample to 10 second intervals, so a) the price is sufficiently different. b) we are not predicting all the time. If we need 3 signals, we only predict every 30 seconds. 
 
 ### TODO
-Set up tracking and analytics based on IGs API.
-Set up backtesting functionality.
-Resample 1 minute intervals (or whatever was used during training), and then take head(1), rather than mean() or something else.
-You have it working with one model. Make everything as easy to deploy multiple models as possible. 
-Can I clean up deployment script the plug and play with any model?
-Get a train test split going in training and track test scores with mlflow DONE
-Move your amateur csv files to a sqllite database
-make new training script with knn model. 
-Make it so that we can buy and sell, the only thing that matters is how certain we are.
-We cant just do a shift to get last few prices because that may be between days?
+'
+- update dbml with all my now knowledge
+- im going to have to pivot transactio_joined to get model_used_preidction and then select using regex in grafana
+- time to get another model going and compare them live! Lets go!
+- actual and prediction are both in terms of 1.0 or around. Convert back to absoloute number. 
+- change sell_date to sell_datetime 
+- Instead of making a transactions_joined, do the individual parts and do the the joins in SQL
+- Perhaps my indexes should be changed to periods rather than timestamps?
+- Can I implement incremental learning, where a new model is trained on the stream of data that I use. That would be cool
+- Set up tracking and analytics based on IGs API.
+- Set up backtesting functionality.
+- You have it working with one model. Make everything as easy to deploy multiple models as possible. 
+- Can I clean up deployment script the plug and play with any model?
+- Get a train test split going in training and track test scores with mlflow DONE
+- Move your amateur csv files to a sqllite database
+- Make new training script with knn model. 
+- Make it so that we can buy and sell, the only thing that matters is how certain we are.
+- We cant just do a shift to get last few prices because that may be between days?
+- Add another subscription in deployment to get transaction updates and save to a csv.
+- Recreate transactions IG table from activity and then we can esentially create a transactions stream.
 
 
 ### RULES
