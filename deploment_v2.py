@@ -64,9 +64,9 @@ def read_responce_(file=TMP_DIR / "responce_.csv"):
     ]
     df = df[cols]
     df["SELL_DATE"] = df["DATE"]
-    df['MODEL_USED'] = 'model'
-    df['PREDICTION'] = '0.9984'
-    df['']
+    df["MODEL_USED"] = "model"
+    df["PREDICTION"] = "0.9984"
+    df[""]
     return df[cols]
 
 
@@ -116,14 +116,16 @@ autoIG_config["epic"] = Epics.BITCOIN_EPIC.value
 sub = Subscription(
     mode="MERGE",
     items=["L1:" + autoIG_config["epic"]],
-    fields=["UPDATE_TIME", "BID", "OFFER","MARKET_STATE"],
+    fields=["UPDATE_TIME", "BID", "OFFER", "MARKET_STATE"],
 )
 
 
 def on_update(item):
     "Everytime the subscription get new data, this is run"
 
-    prices_stream_responce(item).to_csv(TMP_DIR / "raw_stream_.csv", mode="a+", header=False)
+    prices_stream_responce(item).to_csv(
+        TMP_DIR / "raw_stream_.csv", mode="a+", header=False
+    )
 
     raw_stream_length, raw_stream_ = read_stream("raw_stream_.csv")
     # Right now we are resampling everytime time, this is inefficient

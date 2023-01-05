@@ -8,7 +8,10 @@ import os
 
 # Paths
 ROOT_DIR = Path(__file__).parent
-TMP_DIR = ROOT_DIR / "resources" / "tmp" # This is in the package TODO: Move outside package
+TMP_DIR = (
+    ROOT_DIR / "resources" / "tmp"
+)  # This is in the package TODO: Move outside package
+
 
 def market_series(m) -> tuple[pd.Series]:
     """
@@ -22,7 +25,7 @@ def market_series(m) -> tuple[pd.Series]:
 
 
 ## READ/WRITE I/O
-def read_stream(file="stream_.csv", nrows=0):
+def read_stream(file="stream_.csv"):
     path = TMP_DIR / file
 
     "Read the persistent stream data and take the last 3 rows"
@@ -33,7 +36,8 @@ def read_stream(file="stream_.csv", nrows=0):
     )
     df = df.set_index("UPDATED_AT")
     df.index = pd.to_datetime(df.index)
-    return df[nrows:]
+    return df
+
 
 def read_stream_length():
     with open(TMP_DIR / "stream_length.txt", "r") as f:
@@ -46,6 +50,7 @@ def write_stream_length(n):
     with open(TMP_DIR / "stream_length.txt", "w") as f:
         f.write(str(n))
         logging.info(f"New length of stream: {n}")
+
 
 # We can get responce from activity IG table
 # def read_responce_(file=TMP_DIR / "responce.csv"):
@@ -61,6 +66,7 @@ def write_stream_length(n):
 #     full_path = ROOT_DIR / "resources" / "models" / path
 #     return joblib.load(full_path)
 
+
 def parse_time(time: str):
     """
     Add todays date and turn into datetime object.
@@ -69,6 +75,7 @@ def parse_time(time: str):
     return datetime.strptime(
         str(datetime.now().date()) + " " + time, "%Y-%m-%d %H:%M:%S"
     )
+
 
 def prices_stream_responce(item) -> pd.DataFrame:
     "Take in a JSON object and parse as df"
@@ -84,17 +91,13 @@ def prices_stream_responce(item) -> pd.DataFrame:
     # df["UPDATED_AT_REAL"] = datetime.now()
     return df
 
+
 def append_with_header(df, file):
     if os.path.getsize(TMP_DIR / file) == 0:
         df.to_csv(TMP_DIR / file, mode="a+", header=True, index=False)
     else:
         df.to_csv(TMP_DIR / file, mode="a+", header=False, index=False)
 
-
-
-    
-def mins_to_ms(m = 1):
-    return 1000*60*m
 
 def standardise_column_names(df: pd.DataFrame):
     df_new = df.copy()
@@ -106,9 +109,11 @@ def to_hours(td):
     "Gives the number of hours diffreence between two timedeltas"
     return td.days * 24 + td.seconds // 3600
 
+
 def display_df(df, n=1):
     display(df.head(n))
     return df
+
 
 def print_shape(df):
     print(f"Shape: {df.shape[0]:,} {df.shape[1]:,}")

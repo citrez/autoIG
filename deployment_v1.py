@@ -6,9 +6,9 @@ import logging
 from sklearn.preprocessing import PolynomialFeatures
 from sklearn.pipeline import Pipeline
 from sklearn.linear_model import LinearRegression
-from autoIG import in, utils, trade
+from autoIG import instruments, utils, trade
 
-gold_trader = trade.Trader(in.GOLD_EPIC)
+gold_trader = trade.Trader(instruments.GOLD_EPIC)
 
 
 def get_open_position_totals():
@@ -48,9 +48,14 @@ gold_trader = trade.Trader(GOLD_EPIC)
 
 
 if __name__ == "__main__":
-    logger.debug(f"Getting history, Start date: {STARTDATE}, end data: {ENDDATE}, resolution: {RESOLUTION}")
+    logger.debug(
+        f"Getting history, Start date: {STARTDATE}, end data: {ENDDATE}, resolution: {RESOLUTION}"
+    )
     result = gold_trader.ig_service.fetch_historical_prices_by_epic(
-        epic=gold_trader.epic, start_date=STARTDATE, end_date=ENDDATE, resolution=RESOLUTION
+        epic=gold_trader.epic,
+        start_date=STARTDATE,
+        end_date=ENDDATE,
+        resolution=RESOLUTION,
     )
     prices_raw = result["prices"]
     prices = utils.standardise_column_names(prices_raw)
@@ -97,10 +102,10 @@ if __name__ == "__main__":
         if abs(change_needed) > gold_trader.minDealSize:
             if change_needed < 0:
                 logger.info("We're selling!")
-                direction="SELL"
+                direction = "SELL"
             if change_needed < 0:
                 logger.info("We're buying!")
-                direction="BUY"
+                direction = "BUY"
             res = gold_trader.ig_service.create_open_position(
                 **gold_trader.create_open_position_config(
                     size=change_needed, direction=direction

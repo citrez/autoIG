@@ -53,7 +53,9 @@ def adapt_YF_data_for_training(df):
     d = df.copy()
     d.index.name = "UPDATED_AT"
     d = d[["Open"]].rename(columns={"Open": "ASK_OPEN"})
-    d["BID_OPEN"] = d["ASK_OPEN"] + 3  # !HACK! This data doesnt have bid/ask spread,so i just estimate
+    d["BID_OPEN"] = (
+        d["ASK_OPEN"] + 3
+    )  # HACK: This data doesnt have bid/ask spread,so i just estimate
     return d
 
 

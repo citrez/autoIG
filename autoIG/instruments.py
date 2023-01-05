@@ -1,5 +1,6 @@
 from enum import Enum
 
+
 class Epics(Enum):
     "Epics for IG"
     GOLD = "MT.D.GC.Month2.IP"
@@ -8,9 +9,10 @@ class Epics(Enum):
     US_CRUDE_OIL = "CC.D.CL.USS.IP"
     GBP_USD = "CS.D.GBPUSD.TODAY.IP"
 
+
 class Tickers(Enum):
     "Tickers for yahoo finance"
     GOLD = "GC=F"
     MSFT = "msft"
-    BITCOIN = 'BTC-USD'
-    US_CRUDE_OIL = 'CL=F'
+    BITCOIN = "BTC-USD"
+    US_CRUDE_OIL = "CL=F"

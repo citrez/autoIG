@@ -2,7 +2,7 @@ from enum import Enum
 from trading_ig.config import config
 
 
-def open_position_config_(epic, size=1.0) -> dict[str,str]:
+def open_position_config_(epic, size=1.0) -> dict[str, str]:
     """The configutation to create an open position"""
     return {
         "epic": epic,
@@ -24,7 +24,9 @@ def open_position_config_(epic, size=1.0) -> dict[str,str]:
     }
 
 
-def close_position_config_(dealId=None, epic=None,direction = 'SELL',size = 1.0) -> dict[str,str]:
+def close_position_config_(
+    dealId=None, epic=None, direction="SELL", size=1.0
+) -> dict[str, str]:
     """
     The configutation to create a closed position.
     When an open position is open, a responce is returned with a dealId.
