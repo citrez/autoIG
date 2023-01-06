@@ -2,14 +2,13 @@ from datetime import datetime
 from IPython.display import display
 import pandas as pd
 from pathlib import Path
-import joblib
 import logging
 import os
 
 # Paths
 ROOT_DIR = Path(__file__).parent
 TMP_DIR = (
-    ROOT_DIR / "resources" / "tmp"
+    ROOT_DIR / "tmp"
 )  # This is in the package TODO: Move outside package
 
 
