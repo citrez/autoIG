@@ -97,6 +97,9 @@ def on_update(item):
         .iloc[:-1, :]
     )
     stream.to_csv(TMP_DIR / "stream.csv", mode="w", header=True)
+    with sqlite3.connect(TMP_DIR/'autoIG.sqlite') as sqliteConnection:
+        logging.info("Database created and Successfully Connected to SQLite")
+        stream.to_sql(name = 'stream',con=sqliteConnection,if_exists='append')
     stream_length = stream.shape[0]
 
     # We can only make prediction when there is a stream
@@ -193,7 +196,7 @@ def on_update(item):
                 # Maybe open and close connection only once at the begining and end?
                 # Or wrap everthing in a context manager
                 print("Database created and Successfully Connected to SQLite")
-                to_sell.to_sql(name = 'to_sell',schema = 'tmp',con=sqliteConnection,if_exists='append')
+                to_sell.to_sql(name = 'to_sell',con=sqliteConnection,if_exists='append')
         except Exception as e:
             print(e)
         

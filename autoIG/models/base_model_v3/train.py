@@ -42,7 +42,7 @@ model_config["SOURCE"] = Source.yahoo_finance.value
 model_config[
     "EPIC"
 ] = Epics.US_CRUDE_OIL.value  # Could get both of these based on US_CRUDE_OIL and source
-model_config["TICKER"] = Tickers.US_CRUDE_OIL.value
+model_config["TICKER"] = Tickers.US_CRUDE_OIL.value # These are only used if we reload data
 
 ig_yf_resolution = {"1min": "1m"}
 resolutions = {"1min": {"IG": "1min", "YF": "1m"}}
@@ -171,6 +171,8 @@ X_train = train[["ASK_OPEN"]]
 y_train = train["r"]
 X_test = test[["ASK_OPEN"]]
 y_test = test["r"]
+# Persist data used for fitting
+X_train.to_csv(Path(__file__).parent / "X_train.csv")
 stack.fit(X_train, y_train)
 # autolog_run = mlflow.last_active_run()
 with mlflow.start_run(
