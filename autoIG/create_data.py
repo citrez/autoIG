@@ -3,7 +3,6 @@ from trading_ig import IGService
 from autoIG.config import ig_service_config
 
 ig_service = IGService(**ig_service_config)
-from autoIG.utils import mins_to_ms  # use timedeltas instead
 import pandas as pd
 
 

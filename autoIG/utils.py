@@ -11,7 +11,6 @@ TMP_DIR = (
     ROOT_DIR / "tmp"
 )  # This is in the package TODO: Move outside package
 
-
 def market_series(m) -> tuple[pd.Series]:
     """
     We get information about the market using IG's `fetch_market_by_epic` method.
