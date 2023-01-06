@@ -27,8 +27,11 @@ Set LIMIT and STOP losses on all trades. Each trade lasts 3 mins, as set out in 
 However often the stream of data comes through, we could resample to 10 second intervals, so a) the price is sufficiently different. b) we are not predicting all the time. If we need 3 signals, we only predict every 30 seconds. 
 
 ### TODO
-'
+
 - update dbml with all my now knowledge
+- Do everything both in terms of absoloute and centered around 1, including vis and training data. 
+- For training data dashboard, do transformed data rather
+- install mySQL, play around a bit, think sqlite will be the better option
 - im going to have to pivot transactio_joined to get model_used_preidction and then select using regex in grafana
 - time to get another model going and compare them live! Lets go!
 - actual and prediction are both in terms of 1.0 or around. Convert back to absoloute number. 
