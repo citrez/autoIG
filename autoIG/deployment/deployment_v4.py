@@ -62,6 +62,8 @@ sub = Subscription(
     items=["L1:" + autoIG_config["epic"]],
     fields=["UPDATE_TIME", "BID", "OFFER", "MARKET_STATE"],
 )
+import sqlite3
+
 
 
 def on_update(item):
@@ -186,6 +188,15 @@ def on_update(item):
         # update
         to_sell.sold = need_to_sell_bool
         to_sell.to_csv(TMP_DIR / "to_sell.csv", mode="w", header=True, index=False)
+        try:
+            with sqlite3.connect(TMP_DIR/'autoIG.sqlite') as sqliteConnection:
+                # Maybe open and close connection only once at the begining and end?
+                # Or wrap everthing in a context manager
+                print("Database created and Successfully Connected to SQLite")
+                to_sell.to_sql(name = 'to_sell',schema = 'tmp',con=sqliteConnection,if_exists='append')
+        except Exception as e:
+            print(e)
+        
 
         mins_since_deployment = int(
             (deployment_start - current_time).total_seconds() / 60
