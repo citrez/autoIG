@@ -191,8 +191,7 @@ def on_update(item):
 
     return "hi"
 
-
-if __name__ == "__main__":
+def run():
     _ = sub.addlistener(on_update)
     print(_)
     _ = ig_stream_service.ls_client.subscribe(sub)
@@ -203,5 +202,9 @@ if __name__ == "__main__":
             break
     ig_stream_service.disconnect()
     # pd.DataFrame().to_csv(TMP_DIR / "stream_.csv", header=False)  # whipe the tmp data
-    selling_lengths = list()
-    # sell all open positions to clean up
+    # sell all open positions to clean up?
+
+
+if __name__ == "__main__":
+    run()
+    
