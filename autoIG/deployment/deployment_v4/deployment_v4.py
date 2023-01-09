@@ -3,7 +3,6 @@ This script deploys the model used. Ideallly, this should be model agnostic.
 The only thing that should matter is the data feed the model needs.
 i.e prices only models should all work with the same deployment script. 
 """
-from autoIG.instruments import Epics
 from datetime import datetime
 from autoIG.utils import (
     prices_stream_responce,
@@ -13,7 +12,7 @@ from autoIG.utils import (
     write_stream_length,
 )
 from autoIG.create_data import write_to_transations_joined
-
+import sqlite3
 import logging
 from autoIG.utils import append_with_header
 from trading_ig import IGService, IGStreamService
@@ -25,7 +24,9 @@ from autoIG.config import (
 )
 import pandas as pd
 from datetime import timedelta
-from mlflow.sklearn import load_model
+
+# from mlflow.sklearn import load_model
+from mlflow.pyfunc import load_model
 
 # Create a custom logger
 # logger = logging.getLogger(__name__)
@@ -37,8 +38,18 @@ logging.basicConfig(
     datefmt="%Y-%m-%d %H:%M:%S",  # filemode='w', filename='log.log'
 )
 
-MODEL_PATH = "/Users/ezracitron/my_projects/auto_IG/mlruns/993369624604660845/c804d0505ffb447ba538023346ca2774/artifacts/model"
-model = load_model(MODEL_PATH)
+# model_name = 'stacked-linear-reg-model'
+# model_version = '45'
+from deployment_config import (
+    model_name,
+    model_version,
+    r_threshold,
+    epic,
+    stream_length_needed,
+    close_after_x_mins,
+)
+
+model = load_model(f"models:/{model_name}/{model_version}")
 write_stream_length(0)
 
 # Set up Subscription
@@ -46,24 +57,16 @@ ig_service = IGService(**ig_service_config)
 ig_stream_service = IGStreamService(ig_service)
 ig_stream_service.create_session()
 
-# autoIG_config is the config needed for deploymen
+# autoIG_config is the config needed for deployment
 # the less the better, should be able to pick up a model and run
-autoIG_config = dict()
-autoIG_config["r_threshold"] = 0.9
-autoIG_config[
-    "epic"
-] = Epics.US_CRUDE_OIL.value  # market only open to trading until 10pm
-autoIG_config["close_after_x_mins"] = 3
-autoIG_config["stream_length_needed"] = 3
+# autoIG_config = dict()
 deployment_start = datetime.now()
 
 sub = Subscription(
     mode="MERGE",
-    items=["L1:" + autoIG_config["epic"]],
+    items=["L1:" + epic],
     fields=["UPDATE_TIME", "BID", "OFFER", "MARKET_STATE"],
 )
-import sqlite3
-
 
 
 def on_update(item):
@@ -79,15 +82,15 @@ def on_update(item):
 
     """
     if item["values"]["MARKET_STATE"] != "TRADEABLE":
-        print(f"Market state: {item['values']['MARKET_STATE']}")
-        raise Exception("Market not open for trading")
+        raise Exception(
+            f"Market not open for trading. Market state: {item['values']['MARKET_STATE']}"
+        )
 
-    # TODO @citrez #4  Change raw_stream name to price_stream
+    # TODO: @citrez #4  Change raw_stream name to price_stream
     # TODO: #3 Change stream to price_stream_resampled
 
     append_with_header(prices_stream_responce(item), "raw_stream.csv")
     raw_stream = read_stream("raw_stream.csv")
-    # raw_stream_length = raw_stream_.shape[0]
     # We are resampling everytime time, this is inefficient
     # Dont take the last one since it is not complete yet.
     stream = (
@@ -97,14 +100,13 @@ def on_update(item):
         .iloc[:-1, :]
     )
     stream.to_csv(TMP_DIR / "stream.csv", mode="w", header=True)
-    with sqlite3.connect(TMP_DIR/'autoIG.sqlite') as sqliteConnection:
-        logging.info("Database created and Successfully Connected to SQLite")
-        stream.to_sql(name = 'stream',con=sqliteConnection,if_exists='append')
+    with sqlite3.connect(TMP_DIR / "autoIG.sqlite") as sqliteConnection:
+        stream.to_sql(name="stream", con=sqliteConnection, if_exists="append")
     stream_length = stream.shape[0]
 
     # We can only make prediction when there is a stream
     # We only want to make a new prediction when there is a new piece of stream data
-    if (stream_length > autoIG_config["stream_length_needed"]) and (
+    if (stream_length > stream_length_needed) and (
         read_stream_length() < stream_length
     ):
         # When a new row is added to stream_ we jump into action.
@@ -125,21 +127,19 @@ def on_update(item):
         logging.info(f"Latest prediction: {latest_prediction}")
 
         # 3
-        if latest_prediction > autoIG_config["r_threshold"]:
+        if latest_prediction > r_threshold:
             logging.info("BUY!")
-            resp = ig_service.create_open_position(
-                **open_position_config_(epic=autoIG_config["epic"])
-            )
+            resp = ig_service.create_open_position(**open_position_config_(epic=epic))
             # resp in columns in confirms.create_open_positiion
 
             logging.info(f" { resp['dealStatus'] } with dealId {resp['dealId']}")
             # 4
             position_metrics = pd.DataFrame(
                 {
-                    "dealreference": [resp["dealReference"]],
+                    # "dealreference": [resp["dealReference"]],
                     "dealId": [resp["dealId"]],
                     "prediction": [latest_prediction],
-                    "model_used": [MODEL_PATH],
+                    "model_used": [f"{model_name}-v{model_version}"],
                     "buy_date": [pd.to_datetime(resp["date"])],
                     "buy_level_resp": [resp["level"]]
                     # We get this from transactions, but doulbe check
@@ -152,7 +152,7 @@ def on_update(item):
                     "to_sell_date": [
                         (
                             pd.to_datetime(resp["date"]).round("1min")
-                            + timedelta(minutes=autoIG_config["close_after_x_mins"])
+                            + timedelta(minutes=close_after_x_mins)
                         )
                     ],
                     "sold": False,
@@ -160,6 +160,10 @@ def on_update(item):
             )
             append_with_header(to_sell, "to_sell.csv")
             append_with_header(position_metrics, "position_metrics.csv")
+            with sqlite3.connect(TMP_DIR / "autoIG.sqlite") as sqliteConnection:
+                position_metrics.to_sql(
+                    name="position_metrics", con=sqliteConnection, if_exists="append"
+                )
             # append responce
             # This info is in activity??
             single_responce = pd.Series(resp).to_frame().transpose()
@@ -178,7 +182,7 @@ def on_update(item):
                 {
                     "dealId": [i],
                     "dealreference": [resp["dealReference"]],  # closing reference
-                    "dealId": [resp["dealId"]],
+                    "dealId": [resp["dealId"]],  # closing dealId
                     "close_level_resp": resp[
                         "level"
                     ],  # These should come from IG.transactions, but just checking
@@ -188,32 +192,30 @@ def on_update(item):
                 }
             )
             append_with_header(sold, "sold.csv")
+            with sqlite3.connect(TMP_DIR / "autoIG.sqlite") as sqliteConnection:
+                sold.to_sql(name="sold", con=sqliteConnection, if_exists="append")
+
         # update
-        to_sell.sold = need_to_sell_bool
+        to_sell.sold = need_to_sell_bool  # We assume that those that we needed to sell have succesfully been sold
         to_sell.to_csv(TMP_DIR / "to_sell.csv", mode="w", header=True, index=False)
-        try:
-            with sqlite3.connect(TMP_DIR/'autoIG.sqlite') as sqliteConnection:
-                # Maybe open and close connection only once at the begining and end?
-                # Or wrap everthing in a context manager
-                print("Database created and Successfully Connected to SQLite")
-                to_sell.to_sql(name = 'to_sell',con=sqliteConnection,if_exists='append')
-        except Exception as e:
-            print(e)
-        
+
+        with sqlite3.connect(TMP_DIR / "autoIG.sqlite") as sqliteConnection:
+            # Maybe open and close connection only once at the begining and end?
+            # Or wrap everthing in a context manager
+            to_sell.to_sql(name="to_sell", con=sqliteConnection, if_exists="append")
 
         mins_since_deployment = int(
             (deployment_start - current_time).total_seconds() / 60
         )
 
-        write_to_transations_joined(mins_ago=mins_since_deployment + 360)
+        write_to_transations_joined(mins_ago=mins_since_deployment)
 
-    return "hi"
+    return None
+
 
 def run():
-    _ = sub.addlistener(on_update)
-    print(_)
-    _ = ig_stream_service.ls_client.subscribe(sub)
-    print(_)
+    sub.addlistener(on_update)
+    ig_stream_service.ls_client.subscribe(sub)
     while True:
         user_input = input("Enter dd to termiate: ")
         if user_input == "dd":
@@ -225,4 +227,3 @@ def run():
 
 if __name__ == "__main__":
     run()
-    

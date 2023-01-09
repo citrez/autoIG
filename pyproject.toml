@@ -33,7 +33,7 @@ black = "^22.3.0"
 
 [tool.poetry.scripts]
 deployment_v3 = 'autoIG.deployment.deployment_v3:run'
-deployment_v4 = 'autoIG.deployment.deployment_v3:run'
+deployment_v4 = 'autoIG.deployment.deployment_v4.deployment_v4:run'
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]
