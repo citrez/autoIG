@@ -10,3 +10,4 @@ __pycache__
 trading_ig_config.py
 archive/
 mlruns/
+dbml-error.log
