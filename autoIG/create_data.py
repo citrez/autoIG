@@ -30,11 +30,6 @@ def write_to_transations_joined(mins_ago: int):
         trans_type="ALL_DEAL", milliseconds=milliseconds
     )
 
-    activity = ig_service.fetch_account_activity(
-        from_date=now_date - timedelta(days=(tdelta.days + 1)),
-        to_date=now_date + timedelta(days=1),
-        detailed=True,
-    )
 
     transactions_filtered = transactions.drop(
         # Drop this date since activity date is more acurate
@@ -44,18 +39,31 @@ def write_to_transations_joined(mins_ago: int):
     transactions_filtered = transactions_filtered.rename(
         columns={"reference": "closing_dealId"}
     ).astype({"openLevel": float, "closeLevel": float})
+
+    transactions_filtered["y_true"] = transactions_filtered["closeLevel"] / transactions_filtered["openLevel"]
+    transactions_filtered["profitAndLoss_numeric"] = (
+        transactions_filtered["profitAndLoss"].str.removeprefix("£").astype(float)
+    )
     transactions_filtered = transactions_filtered[
         [
             "closing_dealId",
             "instrumentName",
             "openLevel",
             "closeLevel",
+            "y_true",
             "size",
             "profitAndLoss",
+            "profitAndLoss_numeric",
             "currency",
         ]
     ]
 
+    ## ACTIVITY
+    activity = ig_service.fetch_account_activity(
+        from_date=now_date - timedelta(days=(tdelta.days + 1)),
+        to_date=now_date + timedelta(days=1),
+        detailed=True,
+    )
     ## WE ARE ONLY LOOKING AT SELL ACTIVITY
     sell_activity_filtered = activity[activity.direction == "SELL"][
         [
@@ -105,7 +113,7 @@ def write_to_transations_joined(mins_ago: int):
     position_metrics = position_metrics[
         [
             "opening_dealId",
-            "prediction",
+            "y_pred",
             "model_used",
             # "buy_date", # Maybe this should be renamed to buy_date_real or something and there should be some maning consistency
         ]
@@ -114,15 +122,12 @@ def write_to_transations_joined(mins_ago: int):
     joined = transactions_filtered.merge(
         activity_filtered, left_on="closing_dealId", right_on="closing_dealId"
     ).merge(position_metrics, left_on="opening_dealId", right_on="opening_dealId")
-    joined["actual"] = joined["closeLevel"] / joined["openLevel"]
-    joined["profitAndLoss_numeric"] = (
-        joined["profitAndLoss"].str.removeprefix("£").astype(float)
-    )
+
     reorder = [
-        "sell_date",
-        "buy_date",
         "opening_dealId",
         "closing_dealId",
+        "sell_date",
+        "buy_date",
         "openLevel",
         "closeLevel",
         "instrumentName",
@@ -131,7 +136,7 @@ def write_to_transations_joined(mins_ago: int):
         "size",
         "currency",
         "model_used",
-        "prediction",
+        "y_pred",
         "actual",
     ]
 
