@@ -12,7 +12,7 @@ from datetime import timedelta
 from autoIG.utils import TMP_DIR
 
 
-def write_to_transations_joined(mins_ago: int):
+def write_to_transations_joined(secs_ago: int):
     """
 
     Args:
@@ -22,7 +22,7 @@ def write_to_transations_joined(mins_ago: int):
         A joined tables of transactions with lots of useful things
     """
     _ = ig_service.create_session()
-    tdelta = timedelta(minutes=mins_ago)
+    tdelta = timedelta(seconds=secs_ago)
     now_date = datetime.now().date()
 
     milliseconds = int(tdelta.total_seconds() * 1000)
