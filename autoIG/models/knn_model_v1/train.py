@@ -107,34 +107,40 @@ def adapt_data(d_: pd.DataFrame):
 
 model_data = adapt_data(model_data)
 
-create_past_ask_Open_num_small = partial(create_past_ask_Open, num=5)
 
-fillna_transformer = FunctionTransformer(fillna_)
-normalise_transformer = FunctionTransformer(normalise_)
+def create_pipeline():
 
-pl = Pipeline(
-    [
-        (
-            "add_past_period_columns",
-            FunctionTransformer(create_past_ask_Open_num_small),
-        ),
-        ("fill_na", fillna_transformer),
-        ("normalise", normalise_transformer),
-        ("predictor", KNeighborsRegressor()),
-    ]
-)
+    create_past_ask_Open_num_small = partial(create_past_ask_Open, num=5)
+    fillna_transformer = FunctionTransformer(fillna_)
+    normalise_transformer = FunctionTransformer(normalise_)
+    params = {"n_neighbors": 5}
+    pl = Pipeline(
+        [
+            (
+                "add_past_period_columns",
+                FunctionTransformer(create_past_ask_Open_num_small),
+            ),
+            ("fill_na", fillna_transformer),
+            ("normalise", normalise_transformer),
+            ("predictor", KNeighborsRegressor(**params)),
+        ]
+    )
+    if MLFLOW_RUN:
+        with mlflow.start_run():
+            mlflow.log_params(params=params)
+    return pl
 
-TEST_SIZE = 100
-train = model_data.iloc[TEST_SIZE:, :]
-test = model_data.iloc[
-    0:TEST_SIZE, :
-]  # From the begining, we want the best data to be used in training
-X_train = train[["ASK_OPEN"]]
-y_train = train["r"]
-X_test = test[["ASK_OPEN"]]
-y_test = test["r"]
+
+pl = create_pipeline()
+
+X = model_data[["ASK_OPEN"]]
+y = model_data["r"]
+
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=100, shuffle=False)
+# How do we do this from the begining, we want the best (most recent) data to be used in training
+
 pl.fit(X_train, y_train)
-# autolog_run = mlflow.last_active_run()
+
 if MLFLOW_RUN:
     with mlflow.start_run(
         # Uses experiment set in mlflow.set_experiment
