@@ -38,8 +38,6 @@ logging.basicConfig(
     datefmt="%Y-%m-%d %H:%M:%S",  # filemode='w', filename='log.log'
 )
 
-# model_name = 'stacked-linear-reg-model'
-# model_version = '45'
 from deployment_config import (
     model_name,
     model_version,
@@ -129,29 +127,34 @@ def on_update(item):
         # 3
         if latest_prediction > r_threshold:
             logging.info("BUY!")
-            resp = ig_service.create_open_position(**open_position_config_(epic=epic))
+            open_position_responce = ig_service.create_open_position(
+                **open_position_config_(epic=epic)
+            )
             # resp in columns in confirms.create_open_positiion
 
-            logging.info(f" { resp['dealStatus'] } with dealId {resp['dealId']}")
+            logging.info(
+                f" { open_position_responce['dealStatus'] } with dealId {open_position_responce['dealId']}"
+            )
             # 4
             position_metrics = pd.DataFrame(
                 {
                     # "dealreference": [resp["dealReference"]],
-                    "dealId": [resp["dealId"]],
-                    "prediction": [latest_prediction],
+                    "dealId": [open_position_responce["dealId"]],
+                    "y_pred": [latest_prediction],
                     "model_used": [f"{model_name}-v{model_version}"],
-                    "buy_date": [pd.to_datetime(resp["date"])],
-                    "buy_level_resp": [resp["level"]]
+                    "buy_date": [pd.to_datetime(open_position_responce["date"])],
+                    "buy_level_resp": [open_position_responce["level"]]
                     # We get this from transactions, but doulbe check
                 }
             )
             to_sell = pd.DataFrame(
                 {
                     # "dealreference": [resp["dealReference"]],
-                    "dealId": [resp["dealId"]],
+                    "dealId": [open_position_responce["dealId"]],
+                    "buy_date": [pd.to_datetime(open_position_responce["date"])],
                     "to_sell_date": [
                         (
-                            pd.to_datetime(resp["date"]).round("1min")
+                            pd.to_datetime(open_position_responce["date"]).round("1min")
                             + timedelta(minutes=close_after_x_mins)
                         )
                     ],
@@ -166,27 +169,29 @@ def on_update(item):
                 )
             # append responce
             # This info is in activity??
-            single_responce = pd.Series(resp).to_frame().transpose()
+            single_responce = pd.Series(open_position_responce).to_frame().transpose()
         # 5
         to_sell = pd.read_csv(TMP_DIR / "to_sell.csv")
         current_time = datetime.now()
 
         need_to_sell_bool = pd.to_datetime(to_sell.to_sell_date) < current_time
         sell_bool = need_to_sell_bool & (to_sell.sold == False)
-        logging.info(f"Time now is: {datetime.now()}")
+        logging.info(f"Time now is: {current_time}")
         for i in to_sell[sell_bool].dealId:
             logging.info(f"Closing a position {i}")
-            resp = ig_service.close_open_position(**close_position_config_(dealId=i))
+            open_position_responce = ig_service.close_open_position(
+                **close_position_config_(dealId=i)
+            )
             sold = pd.DataFrame(
                 # We need this to get the closing refernce for the IG.transactions table
                 {
                     "dealId": [i],
-                    "dealreference": [resp["dealReference"]],  # closing reference
-                    "dealId": [resp["dealId"]],  # closing dealId
-                    "close_level_resp": resp[
+                    # "dealreference": [resp["dealReference"]],  # closing reference
+                    "dealId": [open_position_responce["dealId"]],  # closing dealId
+                    "close_level_resp": open_position_responce[
                         "level"
                     ],  # These should come from IG.transactions, but just checking
-                    "profit_resp": resp[
+                    "profit_resp": open_position_responce[
                         "profit"
                     ],  # These should come from IG.transactions, but just checking
                 }
@@ -204,11 +209,11 @@ def on_update(item):
             # Or wrap everthing in a context manager
             to_sell.to_sql(name="to_sell", con=sqliteConnection, if_exists="append")
 
-        mins_since_deployment = int(
-            (deployment_start - current_time).total_seconds() / 60
+        secs_since_deployment = int(
+            (current_time - deployment_start ).total_seconds()
         )
 
-        write_to_transations_joined(mins_ago=mins_since_deployment)
+        write_to_transations_joined(secs_ago=secs_since_deployment)
 
     return None
 

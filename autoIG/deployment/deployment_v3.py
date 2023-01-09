@@ -187,7 +187,7 @@ def on_update(item):
             (deployment_start - current_time).total_seconds() / 60
         )
 
-        write_to_transations_joined(mins_ago=mins_since_deployment + 360)
+        write_to_transations_joined(secs_ago=mins_since_deployment + 360)
 
     return "hi"
 
