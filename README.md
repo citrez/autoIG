@@ -4,9 +4,10 @@ I try to keep documentation as close to code as possible.
 There is documentation in the DBML. Comments on the code. 
 ## Getting started
 start grafana with `./bin/grafana-server web ` in the grafana repo
-Start a local server on port 8000 using `python3 -m http.server` in the tmp folder. 
+Start a local server on port 8000 using `python3 -m http.server` in the autoIG folder. 
 TODO: Make this in root dir 
 Start mlflow using `mlflow ui` command
+in grafana, connect to mysql with root user 
 
 
 ### Reference
@@ -28,7 +29,9 @@ However often the stream of data comes through, we could resample to 10 second i
 
 ### TODO
 
-- update dbml with all my now knowledge
+- Update dbml with all my now knowledge
+- Apply a schema to my sqlite database
+- Wrap the entire train script in a function, which takes in data as a argument and maybe a couple more things.
 - Do everything both in terms of absoloute and centered around 1, including vis and training data. 
 - For training data dashboard, do transformed data rather
 - install mySQL, play around a bit, think sqlite will be the better option

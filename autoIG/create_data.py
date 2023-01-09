@@ -137,7 +137,7 @@ def write_to_transations_joined(secs_ago: int):
         "currency",
         "model_used",
         "y_pred",
-        "actual",
+        "y_true",
     ]
 
     joined = joined[reorder]

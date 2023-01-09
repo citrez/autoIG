@@ -53,7 +53,7 @@ table tmp.to_sell {
 }
 
 ///////////////////
-// pub SCHEMA //
+// PUB SCHEMA //
 ///////////////////
 
 table pub.stream {
@@ -95,6 +95,13 @@ table pub.transactions_joined {
   sell_date date
   size float
   note:"IG.transaction, joined with other useful things to get some metrics."
+}
+
+table sold {
+  dealId varchar
+  close_level_resp float
+  profit_resp float
+  note: 'Simply the responce from closing an open postion'
 }
 
 
