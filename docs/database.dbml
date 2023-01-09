@@ -2,34 +2,119 @@ Project autoIG {
   database_type: 'PostgreSQL'
   Note: '''
   An automated trading project for use with IG trading
-  build UI with `dbdocs validate docs/database.dbml` then `dbdocs build docs/database.dbml`
+  Validate - `dbdocs validate docs/database.dbml`
+  Build UI - `dbdocs build docs/database.dbml`
+  `dbml2sql docs/database.dbml > docs/database.sql`
+
+  `sqlite3 autoIG/tmp/autoIG.sqlite < docs/database.sql`
   Open here for a UI: https://dbdocs.io/citrez/autoIG
 
   SCHEMA DESCRIPTIONS:
-  tmp: Where temporary tables are kept. They are needed for trading but do not need to be persiseted once the data has been processed
-  public: Tables i make and use
-  stream: IG streams
-  IG: IG rest API
+  tmp: 
+  Where temporary tables are kept.
+  These are needed for trading but do not need to be persiseted once the data has been processed.
+  pub: 
+  Tables I make and use
+  stream: 
+  IG streams
+  IG:
+  IG rest API
 
   The first two are my creation. The second two are IG's
-
   '''
 }
 
+////////////////
+// TMP SCHEMA //
+////////////////
+
+table tmp.raw_stream {
+  // derived from stream.prices // this raw data stream doesnt need to be saved
+  epic varchar 
+  updated_at datetime 
+  bid_open float
+  ask_open float
+  market_state varchar
+  note: 'A selection from stream.price'
+
+  indexes {
+    (epic,updated_at) [pk]
+  }
+  
+}
+
+table tmp.to_sell {
+  dealId varchar // opening dealId
+  to_sell_date datetime [note: 'The datetime I want to sell']
+  sold boolean
+  note: '''
+  For each opening dealId when should it be sold.
+  '''
+}
+
+///////////////////
+// pub SCHEMA //
+///////////////////
+
+table pub.stream {
+  epic varchar
+  updated_at datetime 
+  bid_open float
+  ask_open float
+  market_state varchar
+  NOTE: 'A resampled (1 min) version of raw_stream'
+  indexes {
+    (epic,updated_at) [pk]
+  }
+}
+
+table pub.position_metrics {
+  dealId varchar [pk]
+  model_used varchar [note: 'The name+version is taken from the model registery']
+  prediction float
+  buy_date datetime
+  buy_level_resp float
+  note: '''
+  We want to keep track of many things about the position we open, when we open them. 
+  '''
+}
+
+table pub.transactions_joined {
+  y_true float 
+  buy_date datetime
+  closing_dealId varchar
+  closeLevel float
+  currency varchar
+  instrumentName varchar
+  model_used varchar
+  opening_dealId varchar
+  openLevel float
+  y_pred float
+  profitAndLoss varchar
+  profitAndLoss_numeric float
+  sell_date date
+  size float
+  note:"IG.transaction, joined with other useful things to get some metrics."
+}
+
+
+///////////////////
 // STREAM SCHEMA //
+///////////////////
+
 table stream.price {
   // MERGE
-  epic varchar
-  mid_open float
-  high float
-  low float
+  bid float [note: 'I sell for']
   change float
   change_pct float
-  update_time datetime
+  epic varchar
+  high float
+  low float
   market_delay boolean
   market_state IG.market_state
-  bid float [note: 'I sell for']
+  mid_open float
   offer float [note: 'I buy for']
+  update_time datetime
   NOTE: '''This is a stream of prices for a particular instrument'''
 }
 
@@ -52,11 +137,10 @@ table stream.trade {
   '''
 }
 
-// dealIdOrigin	What is this?
-
 table stream.OPU {
   // Open position updates
   // DISTINCT
+  // dealIdOrigin	What is this?
   channel IG.channel
   currency varchar
   date datetime
@@ -71,7 +155,9 @@ table stream.OPU {
   NOTE: '''Open position updates (OPU) for an account. This is the stream for activity?'''
 }
 
+///////////////
 // IG SCHEMA //
+///////////////
 
 table IG.transactions {
   closelevel float [note: 'Price deal closed at']
@@ -97,9 +183,11 @@ table IG.activity {
   dealId varchar [pk]
   description varchar
   details json [note:'''
-  Think this is a JSON of stream.OPU of the affected positions. An action opens or closed a position?
+  Think this is a JSON of stream.OPU of the affected positions.
+  An action opens or closed a position?
   These are all the dealIds affetion by the actions of an activity
-  actiontype e.g POSITION_CLOSED, POSITION_DELETED, POSITION_OPENED, POSITION_PARTIALLY_CLOSED, POSITION_ROLLED
+  actiontype e.g POSITION_CLOSED, POSITION_DELETED, POSITION_OPENED,
+  POSITION_PARTIALLY_CLOSED, POSITION_ROLLED
   ''']
   dealreference varchar
   direction IG.direction
@@ -133,56 +221,13 @@ table IG.instrument {
   expiry varchar
   name varchar
   type varchar
-  streamingPricesAvailable bool
+  streamingPricesAvailable boolean
   marketId varchar
   openingHours date
   NOTE: 'This is information about the instrument itself'
 }
 
-// TMP SCHEMA //
 
-table tmp.raw_stream {
-  // derived from stream.prices // this raw data stream doesnt need to be saved
-  epic varchar [pk]
-  updated_at datetime
-  bid_open float
-  ask_open float
-  market_state varchar
-  // note: 'A raw stream of subscription data'
-}
-
-// PUBLIC SCHEMA //
-
-table public.stream {
-  epic varchar [pk]
-  updated_at datetime
-  bid_open float
-  ask_open float
-  market_state varchar
-  NOTE: 'A resampled (1 min) version of raw_stream'
-}
-// table activitiy
-
-// table IG.confirms {
-//   dealId varchar
-// }
-
-table tmp.to_sell {
-  dealId varchar
-  to_sell_date datetime [note: 'The datetime I want to sell']
-  sold varchar
-  note: '''
-  This table describes, for each dealId (which is the dealId of an opening activity).
-  When should it be sold
-  '''
-}
-
-table public.position_metrics {
-  dealId varchar [pk]
-  model_used varchar
-  prediction float
-  note: '''Once a position has been opened and closed, we can calculate many things about it, to see how well it did.'''
-}
 
 // table responce.create_open_position_confirms {
 //   dealId varchar [pk, note: '''Each buying of a instrument has a dealID. It is the permanent deal reference for a confirmed trade''']
@@ -203,7 +248,7 @@ table public.position_metrics {
 //   '''
 // }
 
-// Table public.close_open_position_confirms {
+// Table pub.close_open_position_confirms {
 //   dealId varchar [pk]
 //   affecteddeals json 
 //   date datetime
@@ -226,10 +271,7 @@ table public.position_metrics {
 // profitCurrency
 
 ref: IG.instrument.epic < tmp.raw_stream.epic
-ref: public.stream.epic - tmp.raw_stream.epic
-ref: public.position_metrics.dealId - public.to_sell.dealId
-// ref: public.open_position_responce_info.dealId - IG.create_open_position_confirms.dealId
-// ref: IG.create_open_position_confirms.epic  > IG.instrument.epic
+ref: pub.position_metrics.dealId - tmp.to_sell.dealId
 
 
 // Enums //
@@ -263,8 +305,8 @@ Enum IG.direction {
 Enum IG.channel {
   DEALER
   MOBILE
-  PUBLIC_FIX_API
-  PUBLIC_WEB_API
+  pub_FIX_API
+  pub_WEB_API
   SYSTEM
   WEB
 }
@@ -287,7 +329,3 @@ Enum IG.activity_type {
   WORKING_ORDER
 }
 
-// TABLE GROUPINGS //
-// tablegroup stream {
-//   stream.trade
-// }
