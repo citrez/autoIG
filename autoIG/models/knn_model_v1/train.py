@@ -9,6 +9,7 @@ import pandas as pd
 from sklearn.utils import estimator_html_repr
 from sklearn import set_config
 from sklearn.neighbors import KNeighborsRegressor
+from sklearn.impute import SimpleImputer
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import FunctionTransformer
 from sklearn.metrics import mean_absolute_error
@@ -37,7 +38,7 @@ reload_data_config = dict()
 reload_data_config["resolution"] = "1min"  # Currently not used?
 reload_data_config["numpoints"] = 500
 
-from model_config import source, epic, ticker
+from model_config import source, epic, ticker,threshold,past_periods_needed,target_periods_in_future
 
 MLFLOW_RUN = True
 
@@ -92,8 +93,8 @@ def adapt_data(d_: pd.DataFrame):
     if source == "IG":
         d = (
             d.pipe(adapt_IG_data_for_training)
-            .pipe(create_future_bid_Open)
-            .pipe(generate_target)
+            .pipe(create_future_bid_Open,future_periods = target_periods_in_future)
+            .pipe(generate_target,target_periods_in_future=target_periods_in_future)
             .dropna()
         )  # we need this to create the target
     if source == "YF":
@@ -112,10 +113,14 @@ model_data = adapt_data(model_data)
 
 def create_pipeline():
 
-    create_past_ask_Open_num_small = partial(create_past_ask_Open, num=5)
-    fillna_transformer = FunctionTransformer(fillna_)
+    past_periods = 5
+    assert past_periods <= past_periods_needed
+    create_past_ask_Open_num_small = partial(create_past_ask_Open, past_periods=5)
+    # fillna_transformer = FunctionTransformer(fillna_)
+    fillna_transformer = SimpleImputer(strategy = 'constant',fill_value = -999)
+    
     normalise_transformer = FunctionTransformer(normalise_)
-    params = {"n_neighbors": 5}
+    knn_params = {"n_neighbors": 7}
     pl = Pipeline(
         [
             (
@@ -124,12 +129,12 @@ def create_pipeline():
             ),
             ("fill_na", fillna_transformer),
             ("normalise", normalise_transformer),
-            ("predictor", KNeighborsRegressor(**params)),
+            ("predictor", KNeighborsRegressor(**knn_params)),
         ]
     )
     if MLFLOW_RUN:
         with mlflow.start_run():
-            mlflow.log_params(params=params)
+            mlflow.log_params(params=knn_params)
     return pl
 
 
@@ -138,8 +143,11 @@ pl = create_pipeline()
 X = model_data[["ASK_OPEN"]]
 y = model_data["r"]
 
-X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=100, shuffle=False)
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=1000, shuffle=False)
 # How do we do this from the begining, we want the best (most recent) data to be used in training
+
+print(pd.Series(X_train.index).describe())
+print(pd.Series(X_test.index).describe())
 
 pl.fit(X_train, y_train)
 
@@ -153,7 +161,8 @@ if MLFLOW_RUN:
         model_uri = f"runs:/{run.info.run_id}/{MODEL_NAME}"
         mlflow.sklearn.log_model(
             sk_model=pl,
-            artifact_path="sklearn-model",  # In the run, model artifacts are stored in artifacts/artifact_path
+            # In the run, model artifacts are stored in artifacts/artifact_path
+            artifact_path="sklearn-model",  
             registered_model_name=MODEL_NAME,
             input_example=X_train.iloc[0:3, :],
             signature=mlflow.models.infer_signature(
@@ -168,8 +177,8 @@ if MLFLOW_RUN:
         ax2.set_title("test")
         plt.xlabel("y_true")
         plt.ylabel("y_preds")
+        #TODO: add the optimal line
         plt.suptitle("training_and_testing_predictions_scatter")
-
         mlflow.log_figure(fig, "training_and_testing_predictions_scatter.png")
 
         fig, ax = plt.subplots()
@@ -179,11 +188,10 @@ if MLFLOW_RUN:
             bins=bins,
             alpha=0.5,
             range=(0.999, 1.001),
-            label=["actual", "predictions"],
+            label=["y_true", "y_pred"],
         )
         plt.legend(loc="upper right")
-        plt.suptitle("training y_true y_preds")
-
+        plt.suptitle("training_y_true y_preds")
         mlflow.log_figure(fig, "training_y_true_y_preds.png")
 
         fig, ax = plt.subplots(2)
@@ -195,14 +203,15 @@ if MLFLOW_RUN:
         mlflow.log_figure(fig, "training_and_testing_error_size.png")
 
         mlflow.log_metric(
-            "training_frequency", (pl.predict(X_train) > 1.01).sum() / len(X_train)
+            "training_frequency", (pl.predict(X_train) > threshold).sum() / len(X_train)
         )
         mlflow.log_metric(
-            "testing_frequency", (pl.predict(X_test) > 1.01).sum() / len(X_test)
+            "testing_frequency", (pl.predict(X_test) > threshold).sum() / len(X_test)
         )
         mlflow.log_param("source", source)
         mlflow.log_param("epic", epic)
         mlflow.log_param("ticker", ticker)
+        mlflow.log_param("past_periods_needed", past_periods_needed)
         mlflow.log_dict(
             reload_data_config,
             "historical_prices_config.json",
@@ -230,5 +239,20 @@ if MLFLOW_RUN:
 
         mlflow.log_metric('testing_neigh_dist_n_neighbors_10',pl.named_steps.predictor.kneighbors(pl[:-1].transform(X_test),n_neighbors=10)[0].sum())
         mlflow.log_metric('training_neigh_dist_n_neighbors_10',pl.named_steps.predictor.kneighbors(pl[:-1].transform(X_train),n_neighbors=10)[0].sum())
+
+        fig, ax = plt.subplots()
+        bins = int(len(y_train) * 0.01)
+        plt.hist(
+            [pl.named_steps.predictor.kneighbors(pl[:-1].transform(X_train),n_neighbors=5)[0].sum(axis =1), 
+            pl.named_steps.predictor.kneighbors(pl[:-1].transform(X_test),n_neighbors=5)[0].sum(axis =1)],
+            bins=bins,
+            alpha=0.5,
+            range=(0, 0.003),
+            label=["X_train", "X_test"],
+        )
+        plt.legend(loc="upper right")
+        # plt.suptitle("training_y_true y_preds")
+        mlflow.log_figure(fig, "closeness_hist.png")
+        
 
     print(f"Logged data and model in run {run.info.run_id}")
