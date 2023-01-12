@@ -104,7 +104,7 @@ def on_update(item):
 
     # We can only make prediction when there is a stream
     # We only want to make a new prediction when there is a new piece of stream data
-    if (stream_length > stream_length_needed) and (
+    if (stream_length > past_periods_needed) and (
         read_stream_length() < stream_length
     ):
         # When a new row is added to stream_ we jump into action.
@@ -155,7 +155,7 @@ def on_update(item):
                     "to_sell_date": [
                         (
                             pd.to_datetime(open_position_responce["date"]).round("1min")
-                            + timedelta(minutes=close_after_x_mins)
+                            + timedelta(minutes=target_periods_in_future)
                         )
                     ],
                     "sold": False,

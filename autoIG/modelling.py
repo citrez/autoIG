@@ -4,43 +4,49 @@ import numpy as np
 ##Tools to create the TARGET 'r'
 
 
-def create_future_bid_Open(df, num=1):
-    """Add the future periods selling price to the df.
-    This is important for training, to calculate the profits I would make, and inform the target"""
+def create_future_bid_Open(df, future_periods=1):
+    """
+    Add the future periods selling price to the df.
+    This is important for training, to calculate the profits I would make, and inform the target
+    """
     df_ = df.copy()
-    for i in range(1, num + 1):
+    for i in range(1, future_periods + 1):
         # Next period's bid price is what we can sell it at
         df_["BID_OPEN_S" + str(i)] = df_["BID_OPEN"].shift(-i)
     return df_
 
 
-def generate_target(df, number_of_periods=None):
+def generate_target(df:pd.DataFrame, target_periods_in_future=1) -> pd.DataFrame:
     """
     The simplest target imaginable. How much it has gone up after n (=1) number of periods.
     Just trying to predict the level period, i.e 1 min after
     """
     d = df.copy()
-    d["r"] = d["BID_OPEN_S1"] / d["ASK_OPEN"]
+    if target_periods_in_future ==1:
+        d["r"] = d["BID_OPEN_S1"] / d["ASK_OPEN"]
     return d  # What I sell for next period / What I buy for this period
 
 
 ## For transformation steps
-def create_past_ask_Open(df, num=3):
+def create_past_ask_Open(df: pd.DataFrame, past_periods=3):
     "Add the past periods buying price to the df"
     df_ = df.copy()
-    for i in range(1, num + 1):
+    for i in range(1, past_periods + 1):
         df_["ASK_OPEN_S" + str(i)] = df_["ASK_OPEN"].shift(
             i
         )  # Next period's ask price is what we can sell it at
     return df_
 
 
-def fillna_(df):
+def fillna_(df: pd.DataFrame) -> pd.DataFrame:
     return df.fillna(axis=1, method="ffill")
 
 
 def normalise_(df):
-    "Normalises (within row) from the current asking price being 1, and all past asking prices normalised"
+    """
+    Normalises (within row) from the current asking price being 1,
+    and all past asking prices normalised
+    """
     return df / df[["ASK_OPEN"]].reindex_like(df).fillna(method="ffill", axis="columns")
 
 
