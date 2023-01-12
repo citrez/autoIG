@@ -42,10 +42,24 @@ from deployment_config import (
     model_name,
     model_version,
     r_threshold,
-    epic,
-    stream_length_needed,
-    close_after_x_mins,
+    # epic,
+    # stream_length_needed,
+    # close_after_x_mins,
 )
+logging.info(f"Model: {model_name}-{model_version}")
+
+# Get information for deployment from the model itself
+from mlflow import MlflowClient
+client = MlflowClient()
+mv = client.get_model_version(model_name,model_version)
+model_run_id = mv.run_id
+run = client.get_run(model_run_id)
+run_params = run.data.params
+epic = run_params['epic']
+past_periods_needed = run_params['past_periods_needed']
+target_periods_in_future = run_params['target_periods_in_future']
+print(run.data) # get metadata of the model
+
 
 model = load_model(f"models:/{model_name}/{model_version}")
 write_stream_length(0)
