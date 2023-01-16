@@ -7,10 +7,10 @@ start grafana with `./bin/grafana-server web ` in the grafana repo
 Start a local server on port 8000 using `python3 -m http.server` in the autoIG folder. 
 TODO: Make this in root dir 
 Start mlflow using `mlflow ui` command
-in grafana, connect to mysql with root user 
+In grafana, connect to mysql with root user 
 
 
-### Reference
+### Development Reference
 - [IG API Glossary](https://labs.ig.com/glossary)
 - [IG REST Reference](https://labs.ig.com/rest-trading-api-reference)
 - [IG Stream Reference](https://labs.ig.com/streaming-api-reference)
@@ -27,40 +27,13 @@ Arrange into proper docs:
 Set LIMIT and STOP losses on all trades. Each trade lasts 3 mins, as set out in the training 
 However often the stream of data comes through, we could resample to 10 second intervals, so a) the price is sufficiently different. b) we are not predicting all the time. If we need 3 signals, we only predict every 30 seconds. 
 
-### TODO
-
-- Update dbml with all my now knowledge
-- Apply a schema to my sqlite database
-- Wrap the entire train script in a function, which takes in data as a argument and maybe a couple more things.
-- Do everything both in terms of absoloute and centered around 1, including vis and training data. 
-- For training data dashboard, do transformed data rather
-- install mySQL, play around a bit, think sqlite will be the better option
-- im going to have to pivot transactio_joined to get model_used_preidction and then select using regex in grafana
-- time to get another model going and compare them live! Lets go!
-- actual and prediction are both in terms of 1.0 or around. Convert back to absoloute number. 
-- change sell_date to sell_datetime 
-- Instead of making a transactions_joined, do the individual parts and do the the joins in SQL
-- Perhaps my indexes should be changed to periods rather than timestamps?
-- Can I implement incremental learning, where a new model is trained on the stream of data that I use. That would be cool
-- Set up tracking and analytics based on IGs API.
-- Set up backtesting functionality.
-- You have it working with one model. Make everything as easy to deploy multiple models as possible. 
-- Can I clean up deployment script the plug and play with any model?
-- Get a train test split going in training and track test scores with mlflow DONE
-- Move your amateur csv files to a sqllite database
-- Make new training script with knn model. 
-- Make it so that we can buy and sell, the only thing that matters is how certain we are.
-- We cant just do a shift to get last few prices because that may be between days?
-- Add another subscription in deployment to get transaction updates and save to a csv.
-- Recreate transactions IG table from activity and then we can esentially create a transactions stream.
-
 
 ### RULES
 Don't save data with indexes, if you want read them in with indexes. 
 
 Don’t need to focus on perfecting a model for a stock. Get shape working shape then can search predictable socks
 
-Think about data model. Eve prediction has a model ticket associated. Anything else?
+Think about data model. Every prediction has a model ticket associated. Anything else?
 
 Stack of different length tails. Feeding into linear model
 
