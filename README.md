@@ -1,10 +1,19 @@
 ## Automated trading using IG's API
 
+The aim of this repository is to allow for as-easy-as-possible exploration of various trading stategies and techniques. To this end, I want to make it as easy as possible to
+1) Train new models with new stagties/ hyperparamters.
+2) Deploy these models into a shadoow environemnt
+3) Monitor the performance of said models
+
+Below I set out the specifics of how I address these 3 points.
+
+
 I try to keep documentation as close to code as possible. 
 There is documentation in the DBML. Comments on the code. 
 ## Getting started
 start grafana with `./bin/grafana-server web ` in the grafana repo
 Start a local server on port 8000 using `python3 -m http.server` in the autoIG folder. 
+grafana username and password is admin
 TODO: Make this in root dir 
 Start mlflow using `mlflow ui` command
 In grafana, connect to mysql with root user 
@@ -56,9 +65,26 @@ OFFER: I sell for
 ### Hints
 Use `watch -n 1 tail /Users/ezracitron/my_projects/auto_IG/autoIG/resources/tmp/raw_stream.csv` to set up looking at raw stream
 
+## Mermaid diagram
+
+``` mermaid
+---
+title: The flow of my decisioning
+---
+flowchart TB
+A[MARKET stream] --1min resample--> E[MARKET stream resampled]
+A --> F[(raw_stream.csv)]
+F --> C
+
+C --> D[sklearn pipeline]
+E --> C[(stream.csv)]
+D --> P[prediction]
+```
 
 
+Raw stream comes in and get minute resampled.
 
+Everytime we buy. OPU gives us the time we bought. We wants to have a record of the prediction and model used. 
 
 
 
