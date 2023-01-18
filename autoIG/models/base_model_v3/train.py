@@ -42,7 +42,9 @@ model_config["SOURCE"] = Source.yahoo_finance.value
 model_config[
     "EPIC"
 ] = Epics.US_CRUDE_OIL.value  # Could get both of these based on US_CRUDE_OIL and source
-model_config["TICKER"] = Tickers.US_CRUDE_OIL.value # These are only used if we reload data
+model_config[
+    "TICKER"
+] = Tickers.US_CRUDE_OIL.value  # These are only used if we reload data
 
 ig_yf_resolution = {"1min": "1m"}
 resolutions = {"1min": {"IG": "1min", "YF": "1m"}}

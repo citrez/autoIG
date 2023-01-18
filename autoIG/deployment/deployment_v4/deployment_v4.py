@@ -11,7 +11,7 @@ from autoIG.utils import (
     TMP_DIR,
     read_stream_length,
     write_stream_length,
-    whipe_data
+    whipe_data,
 )
 from autoIG.create_data import write_to_transations_joined
 import sqlite3
@@ -26,11 +26,12 @@ from autoIG.config import (
 )
 import pandas as pd
 from datetime import timedelta
-from mlflow.sklearn import load_model # this returns the actual sklearn model 
+from mlflow.sklearn import load_model  # this returns the actual sklearn model
+
 # from mlflow.pyfunc import load_model
 
 ######
-# WE DO NOT KEEP ANY OLD DATA EACH TIME WE DEPLOY. 
+# WE DO NOT KEEP ANY OLD DATA EACH TIME WE DEPLOY.
 # THIS IS BY CHOICE UNTIL WE HAVE A MORE MATURE PRODUCT
 whipe_data()
 #######
@@ -43,12 +44,12 @@ logging.basicConfig(
 )
 
 # from deployment_config import (
-    # model_name,
-    # model_version,
-    # r_threshold,
-    # epic,
-    # stream_length_needed,
-    # close_after_x_mins,
+# model_name,
+# model_version,
+# r_threshold,
+# epic,
+# stream_length_needed,
+# close_after_x_mins,
 # )
 # logging.info(f"Model: {model_name}-{model_version}")
 
@@ -80,17 +81,20 @@ logging.basicConfig(
 #     fields=["UPDATE_TIME", "BID", "OFFER", "MARKET_STATE"],
 # )
 
-def wrap(model_name,model_version,r_threshold):
+
+def wrap(model_name, model_version, r_threshold):
     # Get information for deployment from the model itself
     client = MlflowClient()
-    mv = client.get_model_version(model_name,model_version)
+    mv = client.get_model_version(model_name, model_version)
     model_run_id = mv.run_id
     run = client.get_run(model_run_id)
-    run_data = run.data # contains all run data
+    run_data = run.data  # contains all run data
     run_params = run_data.params
-    epic = run_params['epic']
-    past_periods_needed = int(run_params['past_periods_needed']) # These are used in on_update function
-    target_periods_in_future = int(run_params['target_periods_in_future'])
+    epic = run_params["epic"]
+    past_periods_needed = int(
+        run_params["past_periods_needed"]
+    )  # These are used in on_update function
+    target_periods_in_future = int(run_params["target_periods_in_future"])
 
     model = load_model(f"models:/{model_name}/{model_version}")
     write_stream_length(0)
@@ -190,7 +194,9 @@ def wrap(model_name,model_version,r_threshold):
                         "buy_date": [pd.to_datetime(open_position_responce["date"])],
                         "to_sell_date": [
                             (
-                                pd.to_datetime(open_position_responce["date"]).round("1min")
+                                pd.to_datetime(open_position_responce["date"]).round(
+                                    "1min"
+                                )
                                 + timedelta(minutes=target_periods_in_future)
                             )
                         ],
@@ -201,11 +207,15 @@ def wrap(model_name,model_version,r_threshold):
                 append_with_header(position_metrics, "position_metrics.csv")
                 with sqlite3.connect(TMP_DIR / "autoIG.sqlite") as sqliteConnection:
                     position_metrics.to_sql(
-                        name="position_metrics", con=sqliteConnection, if_exists="append"
+                        name="position_metrics",
+                        con=sqliteConnection,
+                        if_exists="append",
                     )
                 # append responce
                 # This info is in activity??
-                single_responce = pd.Series(open_position_responce).to_frame().transpose()
+                single_responce = (
+                    pd.Series(open_position_responce).to_frame().transpose()
+                )
             # 5
             to_sell = pd.read_csv(TMP_DIR / "to_sell.csv")
             current_time = datetime.now()
@@ -246,30 +256,36 @@ def wrap(model_name,model_version,r_threshold):
                 to_sell.to_sql(name="to_sell", con=sqliteConnection, if_exists="append")
 
             secs_since_deployment = int(
-                (current_time - deployment_start ).total_seconds()
+                (current_time - deployment_start).total_seconds()
             )
 
             write_to_transations_joined(secs_ago=secs_since_deployment)
 
         return None
+
     return on_update
+
 
 def run():
     from deployment_config import models_to_deploy
+
     for i in models_to_deploy:
-        model_name,model_version,r_threshold = i['model_name'],i['model_version'],i['r_threshold']
+        model_name, model_version, r_threshold = (
+            i["model_name"],
+            i["model_version"],
+            i["r_threshold"],
+        )
         # Get information for deployment from the model itself
         client = MlflowClient()
-        mv = client.get_model_version(model_name,model_version)
+        mv = client.get_model_version(model_name, model_version)
         model_run_id = mv.run_id
         run = client.get_run(model_run_id)
-        run_data = run.data # contains all run data
+        run_data = run.data  # contains all run data
         run_params = run_data.params
-        epic = run_params['epic']
+        epic = run_params["epic"]
         # past_periods_needed = int(run_params['past_periods_needed']) # These are used in on_update function
         # target_periods_in_future = int(run_params['target_periods_in_future'])
-        on_update  =wrap(model_name,model_version,r_threshold)
-
+        on_update = wrap(model_name, model_version, r_threshold)
 
         # model = load_model(f"models:/{model_name}/{model_version}")
         # write_stream_length(0)
@@ -286,7 +302,7 @@ def run():
             items=["L1:" + epic],
             fields=["UPDATE_TIME", "BID", "OFFER", "MARKET_STATE"],
         )
-        print(model_name,model_version,r_threshold)
+        print(model_name, model_version, r_threshold)
 
         sub.addlistener(on_update)
         ig_stream_service.ls_client.subscribe(sub)

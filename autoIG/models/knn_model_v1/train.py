@@ -8,6 +8,8 @@ import mlflow.models
 import pandas as pd
 from sklearn.utils import estimator_html_repr
 from sklearn import set_config
+
+set_config(transform_output="pandas")
 from sklearn.neighbors import KNeighborsRegressor
 from sklearn.impute import SimpleImputer
 from sklearn.pipeline import Pipeline
@@ -25,7 +27,6 @@ from autoIG.modelling import (
 )
 from autoIG.utils import print_shape
 
-set_config(transform_output="pandas")
 
 # MLflow config
 EXPERIMENT_NAME = "knn-reg"
@@ -38,7 +39,14 @@ reload_data_config = dict()
 reload_data_config["resolution"] = "1min"  # Currently not used?
 reload_data_config["numpoints"] = 500
 
-from model_config import source, epic, ticker,threshold,past_periods_needed,target_periods_in_future
+from model_config import (
+    source,
+    epic,
+    ticker,
+    threshold,
+    past_periods_needed,
+    target_periods_in_future,
+)
 
 MLFLOW_RUN = True
 
@@ -93,8 +101,8 @@ def adapt_data(d_: pd.DataFrame):
     if source == "IG":
         d = (
             d.pipe(adapt_IG_data_for_training)
-            .pipe(create_future_bid_Open,future_periods = target_periods_in_future)
-            .pipe(generate_target,target_periods_in_future=target_periods_in_future)
+            .pipe(create_future_bid_Open, future_periods=target_periods_in_future)
+            .pipe(generate_target, target_periods_in_future=target_periods_in_future)
             .dropna()
         )  # we need this to create the target
     if source == "YF":
@@ -117,8 +125,9 @@ def create_pipeline():
     assert past_periods <= past_periods_needed
     create_past_ask_Open_num_small = partial(create_past_ask_Open, past_periods=5)
     # fillna_transformer = FunctionTransformer(fillna_)
-    fillna_transformer = SimpleImputer(strategy = 'constant',fill_value = -999)
-    
+    fillna_transformer = SimpleImputer(strategy="constant", fill_value=-999)
+    fillna_transformer.set_output(transform="pandas")
+
     normalise_transformer = FunctionTransformer(normalise_)
     knn_params = {"n_neighbors": 7}
     pl = Pipeline(
@@ -146,8 +155,8 @@ y = model_data["r"]
 X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=1000, shuffle=False)
 # How do we do this from the begining, we want the best (most recent) data to be used in training
 
-print(pd.Series(X_train.index).describe())
-print(pd.Series(X_test.index).describe())
+print(pd.Series(X_train.index).describe(datetime_is_numeric=True))
+print(pd.Series(X_test.index).describe(datetime_is_numeric=True))
 
 pl.fit(X_train, y_train)
 
@@ -158,11 +167,12 @@ if MLFLOW_RUN:
         description="This is a description of the model run",
     ) as run:
         # Log model
-        model_uri = f"runs:/{run.info.run_id}/{MODEL_NAME}"
+        # Log the actuall model object in the sklearn-model/ directory in artufacts
+        # Also, seperately, register this model
         mlflow.sklearn.log_model(
             sk_model=pl,
             # In the run, model artifacts are stored in artifacts/artifact_path
-            artifact_path="sklearn-model",  
+            artifact_path="sklearn-model",
             registered_model_name=MODEL_NAME,
             input_example=X_train.iloc[0:3, :],
             signature=mlflow.models.infer_signature(
@@ -177,7 +187,7 @@ if MLFLOW_RUN:
         ax2.set_title("test")
         plt.xlabel("y_true")
         plt.ylabel("y_preds")
-        #TODO: add the optimal line
+        # TODO: add the optimal line
         plt.suptitle("training_and_testing_predictions_scatter")
         mlflow.log_figure(fig, "training_and_testing_predictions_scatter.png")
 
@@ -208,10 +218,13 @@ if MLFLOW_RUN:
         mlflow.log_metric(
             "testing_frequency", (pl.predict(X_test) > threshold).sum() / len(X_test)
         )
+        # Log parameters of model
         mlflow.log_param("source", source)
         mlflow.log_param("epic", epic)
         mlflow.log_param("ticker", ticker)
         mlflow.log_param("past_periods_needed", past_periods_needed)
+        mlflow.log_param("target_periods_in_future", target_periods_in_future)
+
         mlflow.log_dict(
             reload_data_config,
             "historical_prices_config.json",
@@ -231,20 +244,56 @@ if MLFLOW_RUN:
         mlflow.log_artifact(local_path=CURRENT_DIR / "pl.html", artifact_path="docs")
 
         ## KNN specific metrics
-        mlflow.log_metric('testing_neigh_dist_n_neighbors_1',pl.named_steps.predictor.kneighbors(pl[:-1].transform(X_test),n_neighbors=1)[0].sum())
-        mlflow.log_metric('training_neigh_dist_n_neighbors_1',pl.named_steps.predictor.kneighbors(pl[:-1].transform(X_train),n_neighbors=1)[0].sum())
+        mlflow.log_metric(
+            "testing_neigh_dist_n_neighbors_1",
+            pl.named_steps.predictor.kneighbors(
+                pl[:-1].transform(X_test), n_neighbors=1
+            )[0].sum(),
+        )
+        mlflow.log_metric(
+            "training_neigh_dist_n_neighbors_1",
+            pl.named_steps.predictor.kneighbors(
+                pl[:-1].transform(X_train), n_neighbors=1
+            )[0].sum(),
+        )
 
-        mlflow.log_metric('testing_neigh_dist_n_neighbors_5',pl.named_steps.predictor.kneighbors(pl[:-1].transform(X_test),n_neighbors=5)[0].sum())
-        mlflow.log_metric('training_neigh_dist_n_neighbors_5',pl.named_steps.predictor.kneighbors(pl[:-1].transform(X_train),n_neighbors=5)[0].sum())
+        mlflow.log_metric(
+            "testing_neigh_dist_n_neighbors_5",
+            pl.named_steps.predictor.kneighbors(
+                pl[:-1].transform(X_test), n_neighbors=5
+            )[0].sum(),
+        )
+        mlflow.log_metric(
+            "training_neigh_dist_n_neighbors_5",
+            pl.named_steps.predictor.kneighbors(
+                pl[:-1].transform(X_train), n_neighbors=5
+            )[0].sum(),
+        )
 
-        mlflow.log_metric('testing_neigh_dist_n_neighbors_10',pl.named_steps.predictor.kneighbors(pl[:-1].transform(X_test),n_neighbors=10)[0].sum())
-        mlflow.log_metric('training_neigh_dist_n_neighbors_10',pl.named_steps.predictor.kneighbors(pl[:-1].transform(X_train),n_neighbors=10)[0].sum())
+        mlflow.log_metric(
+            "testing_neigh_dist_n_neighbors_10",
+            pl.named_steps.predictor.kneighbors(
+                pl[:-1].transform(X_test), n_neighbors=10
+            )[0].sum(),
+        )
+        mlflow.log_metric(
+            "training_neigh_dist_n_neighbors_10",
+            pl.named_steps.predictor.kneighbors(
+                pl[:-1].transform(X_train), n_neighbors=10
+            )[0].sum(),
+        )
 
         fig, ax = plt.subplots()
         bins = int(len(y_train) * 0.01)
         plt.hist(
-            [pl.named_steps.predictor.kneighbors(pl[:-1].transform(X_train),n_neighbors=5)[0].sum(axis =1), 
-            pl.named_steps.predictor.kneighbors(pl[:-1].transform(X_test),n_neighbors=5)[0].sum(axis =1)],
+            [
+                pl.named_steps.predictor.kneighbors(
+                    pl[:-1].transform(X_train), n_neighbors=5
+                )[0].sum(axis=1),
+                pl.named_steps.predictor.kneighbors(
+                    pl[:-1].transform(X_test), n_neighbors=5
+                )[0].sum(axis=1),
+            ],
             bins=bins,
             alpha=0.5,
             range=(0, 0.003),
@@ -253,6 +302,5 @@ if MLFLOW_RUN:
         plt.legend(loc="upper right")
         # plt.suptitle("training_y_true y_preds")
         mlflow.log_figure(fig, "closeness_hist.png")
-        
 
     print(f"Logged data and model in run {run.info.run_id}")

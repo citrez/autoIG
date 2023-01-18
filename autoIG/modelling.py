@@ -16,13 +16,13 @@ def create_future_bid_Open(df, future_periods=1):
     return df_
 
 
-def generate_target(df:pd.DataFrame, target_periods_in_future=1) -> pd.DataFrame:
+def generate_target(df: pd.DataFrame, target_periods_in_future=1) -> pd.DataFrame:
     """
     The simplest target imaginable. How much it has gone up after n (=1) number of periods.
     Just trying to predict the level period, i.e 1 min after
     """
     d = df.copy()
-    if target_periods_in_future ==1:
+    if target_periods_in_future == 1:
         d["r"] = d["BID_OPEN_S1"] / d["ASK_OPEN"]
     return d  # What I sell for next period / What I buy for this period
 
