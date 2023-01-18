@@ -116,3 +116,13 @@ def display_df(df, n=1):
 def print_shape(df):
     print(f"Shape: {df.shape[0]:,} {df.shape[1]:,}")
     return df
+
+
+
+def whipe_data():
+    pd.DataFrame().to_csv(TMP_DIR/"raw_stream.csv",index=False,header=False)
+    pd.DataFrame().to_csv(TMP_DIR/"sold.csv",index=False,header=False)
+    pd.DataFrame().to_csv(TMP_DIR/"position_metrics.csv",index=False,header=False)
+    Path(TMP_DIR/'autoIG.sqlite').unlink()
+    (TMP_DIR/'autoIG.sqlite').touch()
+    logging.info('Whiped temporary data')
