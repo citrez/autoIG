@@ -30,7 +30,6 @@ def write_to_transations_joined(secs_ago: int):
         trans_type="ALL_DEAL", milliseconds=milliseconds
     )
 
-
     transactions_filtered = transactions.drop(
         # Drop this date since activity date is more acurate
         ["date", "period", "transactionType", "cashTransaction"],
@@ -40,7 +39,9 @@ def write_to_transations_joined(secs_ago: int):
         columns={"reference": "closing_dealId"}
     ).astype({"openLevel": float, "closeLevel": float})
 
-    transactions_filtered["y_true"] = transactions_filtered["closeLevel"] / transactions_filtered["openLevel"]
+    transactions_filtered["y_true"] = (
+        transactions_filtered["closeLevel"] / transactions_filtered["openLevel"]
+    )
     transactions_filtered["profitAndLoss_numeric"] = (
         transactions_filtered["profitAndLoss"].str.removeprefix("£").astype(float)
     )
@@ -147,5 +148,23 @@ def write_to_transations_joined(secs_ago: int):
     return None
 
 
+def parse_trade_stream(item):
+    "Maybe just persist the whole stream to a csv and then use queries to get what we need"
+    OPU_dict = item["values"]["OPU"]
+    df = pd.DataFrame(
+        dealId=OPU_dict["dealId"],
+        dealIdOrigin=OPU_dict["dealIdOrigin"],
+        direction=OPU_dict["direction"],
+        epic=OPU_dict["epic"],
+        status=OPU_dict["status"],
+        dealStatus=OPU_dict["dealStatus"],
+        level=OPU_dict["level"],
+        size=OPU_dict["size"],
+        timestamp=OPU_dict["timestamp"],
+    )
+    return df
+
+
 if __name__ == "__main__":
-    write_to_transations_joined(10)
+    # write_to_transations_joined(10)
+    parse_trade_stream()
