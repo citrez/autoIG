@@ -18,6 +18,7 @@ from sklearn.metrics import mean_absolute_error
 from sklearn.model_selection import train_test_split
 
 from autoIG.modelling import create_future_bid_Open, generate_target
+from autoIG.utils import DATA_DIR
 from autoIG.modelling import (
     adapt_IG_data_for_training,
     adapt_YF_data_for_training,
@@ -48,51 +49,22 @@ from model_config import (
     target_periods_in_future,
 )
 
-MLFLOW_RUN = True
+MLFLOW_RUN = False
+# The fetching of the data from IG is done in another script.
+# Do a load of local data.
+# We could do a check on local data to check we have what we need, and if
+# We dont get an error to fetch the data
 
 
-def get_data(reload_data=False):
-    """
-    This gets, or reloads cached data for prices.
-    Prices either come from IG, or yahoo finance.
-    """
-
-    if not reload_data:
-        if source == "IG":
-            model_data = pd.read_pickle(
-                Path(__file__).parent / "model_data" / "model_data_ig.pkl"
-            )
-        if source == "YF":
-            model_data = pd.read_pickle(
-                Path(__file__).parent / "model_data" / "model_data_yf.pkl"
-            )
-
-    if reload_data:
-        if source == "IG":
-            from trading_ig.rest import IGService
-            from autoIG.config import ig_service_config
-
-            ig_service = IGService(**ig_service_config)
-            _ = ig_service.create_session()
-            results_ = ig_service.fetch_historical_prices_by_epic(epic, **reload_data)
-            model_data = results_["prices"]
-            model_data.to_pickle("model_data/model_data_ig.pkl")
-
-        if source == "YF":
-            import yfinance as yf
-
-            tick = yf.Ticker(ticker=ticker)
-            start = "2022-12-24"
-            end = "2022-12-31"  # only 7 days worth of 1m granulairty allow. TODO: Check for this
-            model_data = tick.history(interval="1m", start=start, end=end)
-            model_data.to_pickle("model_data/model_data_yf.pkl")
-        else:
-            Exception("Please provide source to reload data from: (IG/YF)")
-
-    return model_data
 
 
-model_data = get_data()
+
+
+
+
+model_data = pd.read_csv(
+    DATA_DIR / "training" / source / epic.replace(".", "_") / "full_data.csv"
+)
 
 
 def adapt_data(d_: pd.DataFrame):
