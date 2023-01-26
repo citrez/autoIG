@@ -84,7 +84,9 @@ def make_training_data(path):
         dfs.append(pd.read_csv(i))
     full_data = pd.concat(dfs, axis="rows")
     full_data = full_data.sort_values("datetime", ascending=False)
-    full_data['datetime'] = pd.to_datetime(full_data['datetime'].str.removesuffix('-05:00'))
+    full_data["datetime"] = pd.to_datetime(
+        full_data["datetime"].str.removesuffix("-05:00")
+    )
     model_data_path = model_data_dir / "full_data.csv"
     full_data.to_csv(model_data_path, header=True, index=False)
     logging.info(f"Created full_data.csv")
@@ -103,11 +105,12 @@ def inspect_training_data():
         usecols=["datetime"],
         parse_dates=True,
     )
-    datetimes['count'] =1
-    datetimes = datetimes.set_index('datetime')
+    datetimes["count"] = 1
+    datetimes = datetimes.set_index("datetime")
     datetimes.index = pd.to_datetime(datetimes.index)
     import matplotlib.pyplot as plt
-    datetimes.resample('60min').count().plot()
+
+    datetimes.resample("60min").count().plot()
     plt.savefig(DATA_DIR / "training/YF/CL=F/1m/fig.png")
     return None
 

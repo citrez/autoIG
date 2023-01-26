@@ -79,7 +79,9 @@ def create_pipeline():
 
     past_periods = 25
     assert past_periods <= past_periods_needed
-    create_past_ask_Open_num_small = partial(create_past_ask_Open, past_periods=past_periods)
+    create_past_ask_Open_num_small = partial(
+        create_past_ask_Open, past_periods=past_periods
+    )
     # fillna_transformer = FunctionTransformer(fillna_)
     fillna_transformer = SimpleImputer(strategy="constant", fill_value=-999)
     # fillna_transformer.set_output(transform="pandas")
@@ -100,7 +102,9 @@ def create_pipeline():
     if MLFLOW_RUN:
         with mlflow.start_run():
             mlflow.log_params(params=knn_params)
-            mlflow.log_param('past_periods',past_periods) # if multiple go into model, use log_params
+            mlflow.log_param(
+                "past_periods", past_periods
+            )  # if multiple go into model, use log_params
     return pl
 
 
@@ -157,13 +161,13 @@ if MLFLOW_RUN:
         ax1.set_title("train")
         ax2.scatter(y_test, pl.predict(X_test), s=0.7, alpha=0.8)
         ax2.set_title("test")
-        ax1.set_xlabel('y_true')
-        ax1.set_ylabel('y_pred')
-        ax2.set_xlabel('y_true')
-        ax2.set_ylabel('y_pred')
+        ax1.set_xlabel("y_true")
+        ax1.set_ylabel("y_pred")
+        ax2.set_xlabel("y_true")
+        ax2.set_ylabel("y_pred")
         fig.set_size_inches(h=5, w=10)
-        ax1.axline((1.03,1.03),(1.04,1.04))
-        ax2.axline((1.03,1.03),(1.04,1.04))
+        ax1.axline((1.03, 1.03), (1.04, 1.04))
+        ax2.axline((1.03, 1.03), (1.04, 1.04))
         # TODO: add the optimal line
         plt.suptitle("training_and_testing_predictions_scatter")
 
@@ -182,8 +186,8 @@ if MLFLOW_RUN:
         plt.legend(loc="upper right")
         plt.suptitle("training_y_true y_preds")
         mlflow.log_figure(fig, "training_y_true_y_preds.png")
-        ax.set_xlabel('Returns (y)')
-        ax.set_ylabel('Count')
+        ax.set_xlabel("Returns (y)")
+        ax.set_ylabel("Count")
         plt.close()
 
         fig, (ax0, ax1) = plt.subplots(1, 2)
@@ -269,10 +273,10 @@ if MLFLOW_RUN:
 
         fig, ax = plt.subplots()
         bins = int(len(y_train) * 0.001)
-        # Each observation in the training set, 
+        # Each observation in the training set,
         # how close are they to other observations in the
-        # training set (the 5 closest), and the test srt, 
-        # how close are they to other observations in the trainig set. 
+        # training set (the 5 closest), and the test srt,
+        # how close are they to other observations in the trainig set.
         # We would hope that the training and test set are both
         # equally far away from test set items
         plt.hist(
@@ -290,8 +294,8 @@ if MLFLOW_RUN:
             label=["X_train", "X_test"],
             density=True,
         )
-        ax.set_xlabel('Sum of the distance away from 5 closest points in training set')
-        ax.set_ylabel('Count')
+        ax.set_xlabel("Sum of the distance away from 5 closest points in training set")
+        ax.set_ylabel("Count")
         plt.legend(loc="upper right")
         # plt.suptitle("training_y_true y_preds")
         mlflow.log_figure(fig, "closeness_hist.png")
@@ -302,11 +306,16 @@ if MLFLOW_RUN:
         # The distances to the X_train
         # Q: Is the shorter the distances the better the prediction is?
         X_test_distance_to = pl[-1].kneighbors(X_test_transformed)[0].sum(axis=1)
-        filter_bool = [X_test_distance_to<50] # get rid of outliers
+        filter_bool = X_test_distance_to < 50  # get rid of outliers
         absoloute_error = np.array((pl.predict(X_test) - y_test).abs())
 
         fig, ax = plt.subplots()
-        ax.scatter(X_test_distance_to[filter_bool], absoloute_error[filter_bool], s=1, alpha=0.8)
+        ax.scatter(
+            X_test_distance_to[filter_bool],
+            absoloute_error[filter_bool],
+            s=1,
+            alpha=0.8,
+        )
         # ax.set_xlim([0, 0.02])
         ax.set_xlabel("distance_to")
         ax.set_ylabel("absoloute_error")
