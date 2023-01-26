@@ -6,6 +6,7 @@ import mlflow
 import mlflow.sklearn
 import mlflow.models
 import pandas as pd
+import numpy as np
 from sklearn.utils import estimator_html_repr
 from sklearn import set_config
 
@@ -29,16 +30,11 @@ from autoIG.modelling import (
 from autoIG.utils import print_shape
 
 
+MLFLOW_RUN = True
 # MLflow config
 EXPERIMENT_NAME = "knn-reg"
 MODEL_NAME = "knn-reg-model"
 mlflow.set_experiment(EXPERIMENT_NAME)
-
-reload_data_config = dict()
-# ig_yf_resolution = {"1min": "1m"}
-# resolutions = {"1min": {"IG": "1min", "YF": "1m"}}
-reload_data_config["resolution"] = "1min"  # Currently not used?
-reload_data_config["numpoints"] = 500
 
 from model_config import (
     source,
@@ -47,48 +43,35 @@ from model_config import (
     threshold,
     past_periods_needed,
     target_periods_in_future,
+    resolution,
 )
 
-MLFLOW_RUN = False
 # The fetching of the data from IG is done in another script.
 # Do a load of local data.
 # We could do a check on local data to check we have what we need, and if
 # We dont get an error to fetch the data
 
 
-
-
-
-
-
-
+# TODO: Now we are doing this from local, we should probably set up some DVC data tracking
 model_data = pd.read_csv(
-    DATA_DIR / "training" / source / epic.replace(".", "_") / "full_data.csv"
+    DATA_DIR
+    / "training"
+    / source
+    / ticker.replace(".", "_")
+    / resolution
+    / "full_data.csv",
+    parse_dates=["datetime"],  # ,dtype={'datetime':np.datetime64}
 )
 
-
-def adapt_data(d_: pd.DataFrame):
-    d = d_.copy()
-
-    if source == "IG":
-        d = (
-            d.pipe(adapt_IG_data_for_training)
-            .pipe(create_future_bid_Open, future_periods=target_periods_in_future)
-            .pipe(generate_target, target_periods_in_future=target_periods_in_future)
-            .dropna()
-        )  # we need this to create the target
-    if source == "YF":
-        d = (
-            d.pipe(adapt_YF_data_for_training)
-            .pipe(create_future_bid_Open)
-            .pipe(generate_target)
-            .dropna()
-        )
-    d.pipe(print_shape)
-    return d
-
-
-model_data = adapt_data(model_data)
+# as a rule, dont use massive function
+# Do little chucks and pipe
+model_data = (
+    model_data.pipe(adapt_YF_data_for_training)
+    .pipe(create_future_bid_Open)
+    .pipe(generate_target)
+    .dropna()
+)
+model_data.pipe(print_shape)
 
 
 def create_pipeline():
@@ -101,7 +84,7 @@ def create_pipeline():
     fillna_transformer.set_output(transform="pandas")
 
     normalise_transformer = FunctionTransformer(normalise_)
-    knn_params = {"n_neighbors": 7}
+    knn_params = {"n_neighbors": 15}
     pl = Pipeline(
         [
             (
@@ -132,6 +115,19 @@ print(pd.Series(X_test.index).describe(datetime_is_numeric=True))
 
 pl.fit(X_train, y_train)
 
+X_train_transformed = pl[:-1].transform(X_train)
+
+# Look at the k nearest
+random_training_sample = X_train_transformed.iloc[54:55, :]
+distance_to, indecies_of = pl[-1].kneighbors(random_training_sample)
+indecies_of = indecies_of[0]
+distance_to = distance_to[0]
+nearest_of_random_training_sample = X_train_transformed.iloc[indecies_of, :]
+nearest_of_random_training_sample = nearest_of_random_training_sample.assign(
+    distance_to=distance_to
+)
+
+
 if MLFLOW_RUN:
     with mlflow.start_run(
         # Uses experiment set in mlflow.set_experiment
@@ -145,7 +141,7 @@ if MLFLOW_RUN:
             sk_model=pl,
             # In the run, model artifacts are stored in artifacts/artifact_path
             artifact_path="sklearn-model",
-            registered_model_name=MODEL_NAME,
+            # registered_model_name=MODEL_NAME,
             input_example=X_train.iloc[0:3, :],
             signature=mlflow.models.infer_signature(
                 X_train.iloc[0:5, :], pl.predict(X_train.iloc[0:5, :])
@@ -162,9 +158,10 @@ if MLFLOW_RUN:
         # TODO: add the optimal line
         plt.suptitle("training_and_testing_predictions_scatter")
         mlflow.log_figure(fig, "training_and_testing_predictions_scatter.png")
+        plt.close()
 
         fig, ax = plt.subplots()
-        bins = int(len(y_train) * 0.01)
+        bins = int(len(y_train) * 0.003)
         plt.hist(
             [y_train, pl.predict(X_train)],
             bins=bins,
@@ -175,14 +172,18 @@ if MLFLOW_RUN:
         plt.legend(loc="upper right")
         plt.suptitle("training_y_true y_preds")
         mlflow.log_figure(fig, "training_y_true_y_preds.png")
+        plt.close()
 
-        fig, ax = plt.subplots(2)
-        ax[0].scatter(y_train, (y_train - pl.predict(X_train)))
-        ax[0].set_title("train")
-        ax[1].scatter(y_test, y_test - pl.predict(X_test))
-        ax[1].set_title("test")
+        fig, (ax0,ax1) = plt.subplots(2)
+        ax0.scatter(y_train, (y_train - pl.predict(X_train)).abs() )
+        ax0.set_title("train")
+        ax1.scatter(y_test, (y_test - pl.predict(X_test)).abs() )
+        ax1.set_title("test")
+        ax0.set_xlabel('t_true')
+        ax0.set_ylabel('absoloute error')
         plt.suptitle("training_error_size")
-        mlflow.log_figure(fig, "training_and_testing_error_size.png")
+        mlflow.log_figure(fig, "absoloute_error_size.png")
+        plt.close()
 
         mlflow.log_metric(
             "training_frequency", (pl.predict(X_train) > threshold).sum() / len(X_train)
@@ -197,10 +198,10 @@ if MLFLOW_RUN:
         mlflow.log_param("past_periods_needed", past_periods_needed)
         mlflow.log_param("target_periods_in_future", target_periods_in_future)
 
-        mlflow.log_dict(
-            reload_data_config,
-            "historical_prices_config.json",
-        )
+        # mlflow.log_dict(
+        #     reload_data_config,
+        #     "historical_prices_config.json",
+        # )
 
         mlflow.log_metric(
             "testing_mae",
@@ -216,6 +217,7 @@ if MLFLOW_RUN:
         mlflow.log_artifact(local_path=CURRENT_DIR / "pl.html", artifact_path="docs")
 
         ## KNN specific metrics
+
         mlflow.log_metric(
             "testing_neigh_dist_n_neighbors_1",
             pl.named_steps.predictor.kneighbors(
@@ -270,9 +272,27 @@ if MLFLOW_RUN:
             alpha=0.5,
             range=(0, 0.003),
             label=["X_train", "X_test"],
+            density = True
         )
         plt.legend(loc="upper right")
         # plt.suptitle("training_y_true y_preds")
         mlflow.log_figure(fig, "closeness_hist.png")
+        plt.close()
+
+        # If the test set is close to train set, does it produce better predictions
+        X_test_transformed = pl[:-1].transform(X_test)
+        # The distances to the X_train
+        # Q: Is the shorter the distances the better the prediction is?
+        X_test_distance_to = pl[-1].kneighbors(X_test_transformed)[0].sum(axis=1)
+        absoloute_error = np.array((pl.predict(X_test) - y_test).abs())
+
+        fig, ax = plt.subplots()
+        ax.scatter(X_test_distance_to, absoloute_error, s=1, alpha=0.8)
+        ax.set_xlim([0, 0.02])
+        ax.set_xlabel("distance_to")
+        ax.set_ylabel("absoloute_error")
+        ax.set_title("X_test")
+        mlflow.log_figure(fig,"closeness_vrs_error.png")
+        plt.close('all')
 
     print(f"Logged data and model in run {run.info.run_id}")
