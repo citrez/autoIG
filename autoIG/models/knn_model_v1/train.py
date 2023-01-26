@@ -9,6 +9,7 @@ import pandas as pd
 import numpy as np
 from sklearn.utils import estimator_html_repr
 from sklearn import set_config
+import logging
 
 set_config(transform_output="pandas")
 from sklearn.neighbors import KNeighborsRegressor
@@ -21,10 +22,10 @@ from sklearn.model_selection import train_test_split
 from autoIG.modelling import create_future_bid_Open, generate_target
 from autoIG.utils import DATA_DIR
 from autoIG.modelling import (
-    adapt_IG_data_for_training,
+    # adapt_IG_data_for_training,
     adapt_YF_data_for_training,
     create_past_ask_Open,
-    fillna_,
+    # fillna_,
     normalise_,
 )
 from autoIG.utils import print_shape
@@ -51,7 +52,6 @@ from model_config import (
 # We could do a check on local data to check we have what we need, and if
 # We dont get an error to fetch the data
 
-
 # TODO: Now we are doing this from local, we should probably set up some DVC data tracking
 model_data = pd.read_csv(
     DATA_DIR
@@ -75,16 +75,17 @@ model_data.pipe(print_shape)
 
 
 def create_pipeline():
+    "Creates the model pipeline"
 
-    past_periods = 5
+    past_periods = 25
     assert past_periods <= past_periods_needed
-    create_past_ask_Open_num_small = partial(create_past_ask_Open, past_periods=5)
+    create_past_ask_Open_num_small = partial(create_past_ask_Open, past_periods=past_periods)
     # fillna_transformer = FunctionTransformer(fillna_)
     fillna_transformer = SimpleImputer(strategy="constant", fill_value=-999)
-    fillna_transformer.set_output(transform="pandas")
+    # fillna_transformer.set_output(transform="pandas")
 
     normalise_transformer = FunctionTransformer(normalise_)
-    knn_params = {"n_neighbors": 15}
+    knn_params = {"n_neighbors": 10}
     pl = Pipeline(
         [
             (
@@ -99,6 +100,7 @@ def create_pipeline():
     if MLFLOW_RUN:
         with mlflow.start_run():
             mlflow.log_params(params=knn_params)
+            mlflow.log_param('past_periods',past_periods) # if multiple go into model, use log_params
     return pl
 
 
@@ -107,11 +109,13 @@ pl = create_pipeline()
 X = model_data[["ASK_OPEN"]]
 y = model_data["r"]
 
-X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=1000, shuffle=False)
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=3000, shuffle=False)
 # How do we do this from the begining, we want the best (most recent) data to be used in training
 
-print(pd.Series(X_train.index).describe(datetime_is_numeric=True))
-print(pd.Series(X_test.index).describe(datetime_is_numeric=True))
+logging.info(f"Train min date: {pd.Series(X_train.index).min()}")
+logging.info(f"Train max date: {pd.Series(X_train.index).max()}")
+logging.info(f"Test min date: {pd.Series(X_test.index).min()}")
+logging.info(f"Test max date: {pd.Series(X_test.index).max()}")
 
 pl.fit(X_train, y_train)
 
@@ -148,15 +152,21 @@ if MLFLOW_RUN:
             ),
         )
 
-        fig, (ax1, ax2) = plt.subplots(2)
-        ax1.scatter(y_train, pl.predict(X_train))
+        fig, (ax1, ax2) = plt.subplots(1, 2)
+        ax1.scatter(y_train, pl.predict(X_train), s=0.7, alpha=0.8)
         ax1.set_title("train")
-        ax2.scatter(y_test, pl.predict(X_test))
+        ax2.scatter(y_test, pl.predict(X_test), s=0.7, alpha=0.8)
         ax2.set_title("test")
-        plt.xlabel("y_true")
-        plt.ylabel("y_preds")
+        ax1.set_xlabel('y_true')
+        ax1.set_ylabel('y_pred')
+        ax2.set_xlabel('y_true')
+        ax2.set_ylabel('y_pred')
+        fig.set_size_inches(h=5, w=10)
+        ax1.axline((1.03,1.03),(1.04,1.04))
+        ax2.axline((1.03,1.03),(1.04,1.04))
         # TODO: add the optimal line
         plt.suptitle("training_and_testing_predictions_scatter")
+
         mlflow.log_figure(fig, "training_and_testing_predictions_scatter.png")
         plt.close()
 
@@ -166,23 +176,28 @@ if MLFLOW_RUN:
             [y_train, pl.predict(X_train)],
             bins=bins,
             alpha=0.5,
-            range=(0.999, 1.001),
+            # range=(0.999, 1.001),
             label=["y_true", "y_pred"],
         )
         plt.legend(loc="upper right")
         plt.suptitle("training_y_true y_preds")
         mlflow.log_figure(fig, "training_y_true_y_preds.png")
+        ax.set_xlabel('Returns (y)')
+        ax.set_ylabel('Count')
         plt.close()
 
-        fig, (ax0,ax1) = plt.subplots(2)
-        ax0.scatter(y_train, (y_train - pl.predict(X_train)).abs() )
+        fig, (ax0, ax1) = plt.subplots(1, 2)
+        ax0.scatter(y_train, (y_train - pl.predict(X_train)), s=0.7, alpha=0.8)
         ax0.set_title("train")
-        ax1.scatter(y_test, (y_test - pl.predict(X_test)).abs() )
+        ax0.set_xlabel("y_true")
+        ax1.set_xlabel("y_true")
+        ax1.scatter(y_test, (y_test - pl.predict(X_test)), s=0.7, alpha=0.8)
         ax1.set_title("test")
-        ax0.set_xlabel('t_true')
-        ax0.set_ylabel('absoloute error')
+        ax0.set_ylabel("y_true - y_pred")
+        ax1.set_ylabel("y_true - y_pred")
         plt.suptitle("training_error_size")
-        mlflow.log_figure(fig, "absoloute_error_size.png")
+        fig.set_size_inches(h=4, w=10)
+        mlflow.log_figure(fig, "error_size.png")
         plt.close()
 
         mlflow.log_metric(
@@ -197,11 +212,6 @@ if MLFLOW_RUN:
         mlflow.log_param("ticker", ticker)
         mlflow.log_param("past_periods_needed", past_periods_needed)
         mlflow.log_param("target_periods_in_future", target_periods_in_future)
-
-        # mlflow.log_dict(
-        #     reload_data_config,
-        #     "historical_prices_config.json",
-        # )
 
         mlflow.log_metric(
             "testing_mae",
@@ -258,7 +268,13 @@ if MLFLOW_RUN:
         )
 
         fig, ax = plt.subplots()
-        bins = int(len(y_train) * 0.01)
+        bins = int(len(y_train) * 0.001)
+        # Each observation in the training set, 
+        # how close are they to other observations in the
+        # training set (the 5 closest), and the test srt, 
+        # how close are they to other observations in the trainig set. 
+        # We would hope that the training and test set are both
+        # equally far away from test set items
         plt.hist(
             [
                 pl.named_steps.predictor.kneighbors(
@@ -270,10 +286,12 @@ if MLFLOW_RUN:
             ],
             bins=bins,
             alpha=0.5,
-            range=(0, 0.003),
+            # range=(0, 0.003),
             label=["X_train", "X_test"],
-            density = True
+            density=True,
         )
+        ax.set_xlabel('Sum of the distance away from 5 closest points in training set')
+        ax.set_ylabel('Count')
         plt.legend(loc="upper right")
         # plt.suptitle("training_y_true y_preds")
         mlflow.log_figure(fig, "closeness_hist.png")
@@ -284,15 +302,16 @@ if MLFLOW_RUN:
         # The distances to the X_train
         # Q: Is the shorter the distances the better the prediction is?
         X_test_distance_to = pl[-1].kneighbors(X_test_transformed)[0].sum(axis=1)
+        filter_bool = [X_test_distance_to<50] # get rid of outliers
         absoloute_error = np.array((pl.predict(X_test) - y_test).abs())
 
         fig, ax = plt.subplots()
-        ax.scatter(X_test_distance_to, absoloute_error, s=1, alpha=0.8)
-        ax.set_xlim([0, 0.02])
+        ax.scatter(X_test_distance_to[filter_bool], absoloute_error[filter_bool], s=1, alpha=0.8)
+        # ax.set_xlim([0, 0.02])
         ax.set_xlabel("distance_to")
         ax.set_ylabel("absoloute_error")
         ax.set_title("X_test")
-        mlflow.log_figure(fig,"closeness_vrs_error.png")
-        plt.close('all')
+        mlflow.log_figure(fig, "closeness_vrs_error.png")
+        plt.close("all")
 
     print(f"Logged data and model in run {run.info.run_id}")
