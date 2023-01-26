@@ -1,14 +1,10 @@
 "Ulitimately this should all be data already in the database and this should be a view/ task"
-from trading_ig import IGService
-from autoIG.config import ig_service_config
+from datetime import datetime, timedelta
 
-ig_service = IGService(**ig_service_config)
 import pandas as pd
+from trading_ig import IGService
 
-
-from datetime import datetime
-from datetime import timedelta
-
+from autoIG.config import ig_service_config
 from autoIG.utils import TMP_DIR
 
 
@@ -21,6 +17,7 @@ def write_to_transations_joined(secs_ago: int):
     Returns:
         A joined tables of transactions with lots of useful things
     """
+    ig_service = IGService(**ig_service_config)
     _ = ig_service.create_session()
     tdelta = timedelta(seconds=secs_ago)
     now_date = datetime.now().date()

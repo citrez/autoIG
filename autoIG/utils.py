@@ -8,7 +8,7 @@ import os
 # Paths
 ROOT_DIR = Path(__file__).parent
 TMP_DIR = ROOT_DIR / "tmp"  # This is in the package TODO: Move outside package
-DATA_DIR = ROOT_DIR.parent / 'data'
+DATA_DIR = ROOT_DIR.parent / "data"
 
 
 def market_series(m) -> tuple[pd.Series]:
