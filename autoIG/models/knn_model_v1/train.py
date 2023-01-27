@@ -45,6 +45,7 @@ from model_config import (
     past_periods_needed,
     target_periods_in_future,
     resolution,
+    past_periods
 )
 
 # The fetching of the data from IG is done in another script.
@@ -77,14 +78,13 @@ model_data.pipe(print_shape)
 def create_pipeline():
     "Creates the model pipeline"
 
-    past_periods = 25
     assert past_periods <= past_periods_needed
     create_past_ask_Open_num_small = partial(
         create_past_ask_Open, past_periods=past_periods
     )
     # fillna_transformer = FunctionTransformer(fillna_)
     fillna_transformer = SimpleImputer(strategy="constant", fill_value=-999)
-    # fillna_transformer.set_output(transform="pandas")
+    fillna_transformer.set_output(transform="pandas") # ISSUE: This shouldnt be needed but is.
 
     normalise_transformer = FunctionTransformer(normalise_)
     knn_params = {"n_neighbors": 10}
@@ -142,14 +142,11 @@ if MLFLOW_RUN:
         run_id=mlflow.last_active_run().info.run_id,
         description="This is a description of the model run",
     ) as run:
-        # Log model
-        # Log the actuall model object in the sklearn-model/ directory in artufacts
-        # Also, seperately, register this model
         mlflow.sklearn.log_model(
             sk_model=pl,
             # In the run, model artifacts are stored in artifacts/artifact_path
             artifact_path="sklearn-model",
-            # registered_model_name=MODEL_NAME,
+            # registered_model_name=MODEL_NAME, # Do the registering in the UI
             input_example=X_train.iloc[0:3, :],
             signature=mlflow.models.infer_signature(
                 X_train.iloc[0:5, :], pl.predict(X_train.iloc[0:5, :])
@@ -168,7 +165,6 @@ if MLFLOW_RUN:
         fig.set_size_inches(h=5, w=10)
         ax1.axline((1.03, 1.03), (1.04, 1.04))
         ax2.axline((1.03, 1.03), (1.04, 1.04))
-        # TODO: add the optimal line
         plt.suptitle("training_and_testing_predictions_scatter")
 
         mlflow.log_figure(fig, "training_and_testing_predictions_scatter.png")
@@ -228,7 +224,9 @@ if MLFLOW_RUN:
         CURRENT_DIR = Path(__file__).parent
         with open(CURRENT_DIR / "pl.html", "w") as f:
             f.write(estimator_html_repr(pl))
-        mlflow.log_artifact(local_path=CURRENT_DIR / "pl.html", artifact_path="docs")
+            mlflow.log_artifact(local_path=CURRENT_DIR / "pl.html", artifact_path="docs")
+            (CURRENT_DIR / "pl.html").unlink()
+            
 
         ## KNN specific metrics
 

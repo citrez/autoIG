@@ -1,5 +1,6 @@
 import pandas as pd
 import numpy as np
+from autoIG.utils import print_shape
 
 ##Tools to create the TARGET 'r'
 
@@ -53,15 +54,16 @@ def normalise_(df):
 def adapt_YF_data_for_training(df):
     """
     Yahoo finance data can be used for training.
-    We adapt, to get in the same form as used in streaming
+    We adapt, to get in the same form as used in streaming. (Even though we stream from IG)
     so that the data used for training is consistent
     """
     d = df.copy()
+    d = d.set_index("datetime")
     d.index.name = "UPDATED_AT"
-    d = d[["Open"]].rename(columns={"Open": "ASK_OPEN"})
+    d = d[["open"]].rename(columns={"open": "ASK_OPEN"})
     d["BID_OPEN"] = (
         d["ASK_OPEN"] + 3
-    )  # HACK: This data doesnt have bid/ask spread,so i just estimate
+    )  # HACK: This data doesnt have bid/ask spread,so I just estimate
     return d
 
 
@@ -106,3 +108,26 @@ def generate_target_1(df, goes_up_by, number_of_periods=None) -> pd.Series:
     ]
     res = np.select(condlist=condlist, choicelist=choicelist, default=0)
     return res
+
+
+def adapt_yf_data(d_: pd.DataFrame):
+    d = d_.copy()
+    d = (
+        d.pipe(adapt_YF_data_for_training)
+        .pipe(create_future_bid_Open)
+        .pipe(generate_target)
+        .dropna()
+    )
+    d.pipe(print_shape)
+
+
+# def adapt_ig_data(d_: pd.DataFrame):
+#     d = d_.copy()
+#     d = (
+#             d.pipe(adapt_IG_data_for_training)
+#             .pipe(create_future_bid_Open, future_periods=target_periods_in_future)
+#             .pipe(generate_target, target_periods_in_future=target_periods_in_future)
+#             .dropna()
+#         )  # we need this to create the target
+#     d.pipe(print_shape)
+#     return d

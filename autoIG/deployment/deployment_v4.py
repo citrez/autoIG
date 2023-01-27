@@ -14,6 +14,7 @@ from autoIG.utils import (
     whipe_data,
 )
 from autoIG.create_data import write_to_transations_joined
+from deployment_config import models_to_deploy
 import sqlite3
 import logging
 from autoIG.utils import append_with_header
@@ -35,13 +36,13 @@ from mlflow.sklearn import load_model  # this returns the actual sklearn model
 # THIS IS BY CHOICE UNTIL WE HAVE A MORE MATURE PRODUCT
 whipe_data()
 #######
-
 # TODO: Sort out logger handling
 logging.basicConfig(
-    format="%(asctime)s %(levelname)-8s %(module)-20s %(message)s",
-    level=logging.INFO,
-    datefmt="%Y-%m-%d %H:%M:%S",  # filemode='w', filename='log.log'
-)
+        format="%(asctime)s %(levelname)-8s %(module)-20s %(message)s",
+        level=logging.INFO,
+        datefmt="%Y-%m-%d %H:%M:%S",  # filemode='w', filename='log.log'
+    )
+
 
 # from deployment_config import (
 # model_name,
@@ -83,6 +84,10 @@ logging.basicConfig(
 
 
 def wrap(model_name, model_version, r_threshold):
+    """
+    On update only takes one arguemnt. So we use a closure to define the local
+    variables that are being fed into on_update
+    """
     # Get information for deployment from the model itself
     client = MlflowClient()
     mv = client.get_model_version(model_name, model_version)
@@ -138,11 +143,10 @@ def wrap(model_name, model_version, r_threshold):
             .iloc[:-1, :]
         )
         stream.to_csv(TMP_DIR / "stream.csv", mode="w", header=True)
-        with sqlite3.connect(TMP_DIR / "autoIG.sqlite") as sqliteConnection:
-            stream.to_sql(name="stream", con=sqliteConnection, if_exists="append")
+        # with sqlite3.connect(TMP_DIR / "autoIG.sqlite") as sqliteConnection:
+        #     stream.to_sql(name="stream", con=sqliteConnection, if_exists="append")
         stream_length = stream.shape[0]
 
-        # We can only make prediction when there is a stream
         # We only want to make a new prediction when there is a new piece of stream data
         if (stream_length > past_periods_needed) and (
             read_stream_length() < stream_length
@@ -167,34 +171,43 @@ def wrap(model_name, model_version, r_threshold):
             # 3
             if latest_prediction > r_threshold:
                 logging.info("BUY!")
-                open_position_responce = ig_service.create_open_position(
+                close_position_responce = ig_service.create_open_position(
                     **open_position_config_(epic=epic)
                 )
                 # resp in columns in confirms.create_open_positiion
 
                 logging.info(
-                    f" { open_position_responce['dealStatus'] } with dealId {open_position_responce['dealId']}"
+                    f" { close_position_responce['dealStatus'] } with dealId {close_position_responce['dealId']}"
                 )
                 # 4
                 position_metrics = pd.DataFrame(
                     {
                         # "dealreference": [resp["dealReference"]],
-                        "dealId": [open_position_responce["dealId"]],
-                        "y_pred": [latest_prediction],
+                        "dealId": [close_position_responce["dealId"]],
                         "model_used": [f"{model_name}-v{model_version}"],
-                        "buy_date": [pd.to_datetime(open_position_responce["date"])],
-                        "buy_level_resp": [open_position_responce["level"]]
+                        "y_pred": [latest_prediction],
+                        "buy_date": [pd.to_datetime(close_position_responce["date"])],
+                        "sell_date": [
+                            (
+                                pd.to_datetime(close_position_responce["date"]).round(
+                                    "1min"
+                                )
+                                + timedelta(minutes=target_periods_in_future)
+                            )
+                        ],
+                        "buy_level_resp": [close_position_responce["level"]],
                         # We get this from transactions, but doulbe check
+                        "sold": False,
                     }
                 )
-                to_sell = pd.DataFrame(
+                to_sell = pd.DataFrame( # get rid of this
                     {
                         # "dealreference": [resp["dealReference"]],
-                        "dealId": [open_position_responce["dealId"]],
-                        "buy_date": [pd.to_datetime(open_position_responce["date"])],
-                        "to_sell_date": [
+                        "dealId": [close_position_responce["dealId"]],
+                        "buy_date": [pd.to_datetime(close_position_responce["date"])],
+                        "sell_date": [ # change to sell_date
                             (
-                                pd.to_datetime(open_position_responce["date"]).round(
+                                pd.to_datetime(close_position_responce["date"]).round(
                                     "1min"
                                 )
                                 + timedelta(minutes=target_periods_in_future)
@@ -203,29 +216,31 @@ def wrap(model_name, model_version, r_threshold):
                         "sold": False,
                     }
                 )
-                append_with_header(to_sell, "to_sell.csv")
+                # append_with_header(to_sell, "to_sell.csv")
                 append_with_header(position_metrics, "position_metrics.csv")
-                with sqlite3.connect(TMP_DIR / "autoIG.sqlite") as sqliteConnection:
-                    position_metrics.to_sql(
-                        name="position_metrics",
-                        con=sqliteConnection,
-                        if_exists="append",
-                    )
+                # with sqlite3.connect(TMP_DIR / "autoIG.sqlite") as sqliteConnection:
+                #     position_metrics.to_sql(
+                #         name="position_metrics",
+                #         con=sqliteConnection,
+                #         if_exists="append",
+                #     )
+
                 # append responce
                 # This info is in activity??
                 single_responce = (
-                    pd.Series(open_position_responce).to_frame().transpose()
+                    pd.Series(close_position_responce).to_frame().transpose()
                 )
             # 5
             to_sell = pd.read_csv(TMP_DIR / "to_sell.csv")
+            position_metrics = pd.read_csv(TMP_DIR / "position_metrics.csv")
             current_time = datetime.now()
 
-            need_to_sell_bool = pd.to_datetime(to_sell.to_sell_date) < current_time
-            sell_bool = need_to_sell_bool & (to_sell.sold == False)
+            need_to_sell_bool = pd.to_datetime(position_metrics.sell_date) < current_time
+            sell_bool = need_to_sell_bool & (position_metrics.sold == False)
             logging.info(f"Time now is: {current_time}")
-            for i in to_sell[sell_bool].dealId:
+            for i in position_metrics[sell_bool].dealId:
                 logging.info(f"Closing a position {i}")
-                open_position_responce = ig_service.close_open_position(
+                close_position_responce = ig_service.close_open_position(
                     **close_position_config_(dealId=i)
                 )
                 sold = pd.DataFrame(
@@ -233,27 +248,27 @@ def wrap(model_name, model_version, r_threshold):
                     {
                         "dealId": [i],
                         # "dealreference": [resp["dealReference"]],  # closing reference
-                        "dealId": [open_position_responce["dealId"]],  # closing dealId
-                        "close_level_resp": open_position_responce[
+                        # "dealId": [close_position_responce["dealId"]],  # closing dealId, the same as i
+                        "close_level_resp": close_position_responce[
                             "level"
                         ],  # These should come from IG.transactions, but just checking
-                        "profit_resp": open_position_responce[
+                        "profit_resp": close_position_responce[
                             "profit"
                         ],  # These should come from IG.transactions, but just checking
                     }
                 )
                 append_with_header(sold, "sold.csv")
-                with sqlite3.connect(TMP_DIR / "autoIG.sqlite") as sqliteConnection:
-                    sold.to_sql(name="sold", con=sqliteConnection, if_exists="append")
+                # with sqlite3.connect(TMP_DIR / "autoIG.sqlite") as sqliteConnection:
+                #     sold.to_sql(name="sold", con=sqliteConnection, if_exists="append")
 
             # update
-            to_sell.sold = need_to_sell_bool  # We assume that those that we needed to sell have succesfully been sold
-            to_sell.to_csv(TMP_DIR / "to_sell.csv", mode="w", header=True, index=False)
+            position_metrics.sold = need_to_sell_bool  # We assume that those that we needed to sell have succesfully been sold
+            position_metrics.to_csv(TMP_DIR / "position_metrics.csv", mode="w", header=True, index=False)
 
-            with sqlite3.connect(TMP_DIR / "autoIG.sqlite") as sqliteConnection:
-                # Maybe open and close connection only once at the begining and end?
-                # Or wrap everthing in a context manager
-                to_sell.to_sql(name="to_sell", con=sqliteConnection, if_exists="append")
+            # with sqlite3.connect(TMP_DIR / "autoIG.sqlite") as sqliteConnection:
+            #     # Maybe open and close connection only once at the begining and end?
+            #     # Or wrap everthing in a context manager
+            #     position_metrics.to_sql(name="position_metrics", con=sqliteConnection, if_exists="append")
 
             secs_since_deployment = int(
                 (current_time - deployment_start).total_seconds()
@@ -267,7 +282,6 @@ def wrap(model_name, model_version, r_threshold):
 
 
 def run():
-    from deployment_config import models_to_deploy
 
     for i in models_to_deploy:
         model_name, model_version, r_threshold = (
@@ -316,10 +330,10 @@ def run():
 
 def deploy():
     run()
-    # pd.DataFrame().to_csv(TMP_DIR / "stream_.csv", header=False)  # whipe the tmp data
     # sell all open positions to clean up?
     return None
 
 
 if __name__ == "__main__":
+
     deploy()
