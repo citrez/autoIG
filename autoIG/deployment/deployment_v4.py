@@ -204,28 +204,44 @@ def wrap(model_name, model_version, r_threshold):
             )
             sell_bool = need_to_sell_bool & (position_metrics.sold == False)
             logging.info(f"Time now is: {current_time}")
-            for i in position_metrics[sell_bool].dealId:
-                logging.info(f"Closing a position {i}")
-                close_position_responce = ig_service.close_open_position(
-                    **close_position_config_(dealId=i)
-                )
-                sold = pd.DataFrame(
-                    # We need this to get the closing refernce for the IG.transactions table
-                    {
-                        "dealId": [i],
-                        # "dealreference": [resp["dealReference"]],  # closing reference
-                        # "dealId": [close_position_responce["dealId"]],  # closing dealId, the same as i
-                        "close_level_resp": close_position_responce[
-                            "level"
-                        ],  # These should come from IG.transactions, but just checking
-                        "profit_resp": close_position_responce[
-                            "profit"
-                        ],  # These should come from IG.transactions, but just checking
-                    }
-                )
-                append_with_header(sold, "sold.csv")
-                # with sqlite3.connect(TMP_DIR / "autoIG.sqlite") as sqliteConnection:
-                #     sold.to_sql(name="sold", con=sqliteConnection, if_exists="append")
+
+            def close_open_positions(s: pd.Series):
+                for i in s:
+                    logging.info(f"Closing a position {i}")
+                    close_position_responce = ig_service.close_open_position(
+                        **close_position_config_(dealId=i)
+                    )
+                    sold = pd.DataFrame(
+                        {
+                            "dealId": [i],
+                            "close_level_resp": close_position_responce["level"],
+                        }
+                    )
+                    append_with_header(sold, "sold.csv")
+            close_open_positions(position_metrics[sell_bool].dealId)
+
+            # for i in position_metrics[sell_bool].dealId:
+            #     logging.info(f"Closing a position {i}")
+            #     close_position_responce = ig_service.close_open_position(
+            #         **close_position_config_(dealId=i)
+            #     )
+            #     sold = pd.DataFrame(
+            #         # We need this to get the closing refernce for the IG.transactions table
+            #         {
+            #             "dealId": [i],
+            #             # "dealreference": [resp["dealReference"]],  # closing reference
+            #             # "dealId": [close_position_responce["dealId"]],  # closing dealId, the same as i
+            #             "close_level_resp": close_position_responce[
+            #                 "level"
+            #             ],  # These should come from IG.transactions, but just checking
+            #             # "profit_resp": close_position_responce[
+            #             #     "profit"
+            #             # ],  # These should come from IG.transactions, but just checking
+            #         }
+            #     )
+            #     append_with_header(sold, "sold.csv")
+            #     # with sqlite3.connect(TMP_DIR / "autoIG.sqlite") as sqliteConnection:
+            #     #     sold.to_sql(name="sold", con=sqliteConnection, if_exists="append")
 
             # update
             position_metrics.sold = need_to_sell_bool  # We assume that those that we needed to sell have succesfully been sold
