@@ -15,7 +15,8 @@ from autoIG.utils import (
 )
 from autoIG.create_data import write_to_transations_joined
 from deployment_config import models_to_deploy
-import sqlite3
+
+# import sqlite3
 import logging
 from autoIG.utils import append_with_header
 from trading_ig import IGService, IGStreamService
@@ -30,6 +31,11 @@ from datetime import timedelta
 from mlflow.sklearn import load_model  # this returns the actual sklearn model
 
 # from mlflow.pyfunc import load_model
+logging.basicConfig(
+    format="%(asctime)s %(levelname)-8s %(module)-20s %(message)s",
+    level=logging.INFO,
+    datefmt="%Y-%m-%d %H:%M:%S",  # filemode='w', filename='log.log'
+)
 
 ######
 # WE DO NOT KEEP ANY OLD DATA EACH TIME WE DEPLOY.
@@ -37,50 +43,6 @@ from mlflow.sklearn import load_model  # this returns the actual sklearn model
 whipe_data()
 #######
 # TODO: Sort out logger handling
-logging.basicConfig(
-        format="%(asctime)s %(levelname)-8s %(module)-20s %(message)s",
-        level=logging.INFO,
-        datefmt="%Y-%m-%d %H:%M:%S",  # filemode='w', filename='log.log'
-    )
-
-
-# from deployment_config import (
-# model_name,
-# model_version,
-# r_threshold,
-# epic,
-# stream_length_needed,
-# close_after_x_mins,
-# )
-# logging.info(f"Model: {model_name}-{model_version}")
-
-# Get information for deployment from the model itself
-# client = MlflowClient()
-# mv = client.get_model_version(model_name,model_version)
-# model_run_id = mv.run_id
-# run = client.get_run(model_run_id)
-# run_data = run.data # contains all run data
-# run_params = run_data.params
-# epic = run_params['epic']
-# past_periods_needed = int(run_params['past_periods_needed'])
-# target_periods_in_future = int(run_params['target_periods_in_future'])
-
-
-# model = load_model(f"models:/{model_name}/{model_version}")
-# write_stream_length(0)
-
-# Set up Subscription
-# ig_service = IGService(**ig_service_config)
-# ig_stream_service = IGStreamService(ig_service)
-# ig_stream_service.create_session()
-
-# deployment_start = datetime.now()
-
-# sub = Subscription(
-#     mode="MERGE",
-#     items=["L1:" + epic],
-#     fields=["UPDATE_TIME", "BID", "OFFER", "MARKET_STATE"],
-# )
 
 
 def wrap(model_name, model_version, r_threshold):
@@ -105,6 +67,7 @@ def wrap(model_name, model_version, r_threshold):
     write_stream_length(0)
 
     # Set up Subscription
+    # Is this really needed? We've already set up a service outside this
     ig_service = IGService(**ig_service_config)
     ig_stream_service = IGStreamService(ig_service)
     ig_stream_service.create_session()
@@ -200,12 +163,12 @@ def wrap(model_name, model_version, r_threshold):
                         "sold": False,
                     }
                 )
-                to_sell = pd.DataFrame( # get rid of this
+                to_sell = pd.DataFrame(  # get rid of this
                     {
                         # "dealreference": [resp["dealReference"]],
                         "dealId": [close_position_responce["dealId"]],
                         "buy_date": [pd.to_datetime(close_position_responce["date"])],
-                        "sell_date": [ # change to sell_date
+                        "sell_date": [  # change to sell_date
                             (
                                 pd.to_datetime(close_position_responce["date"]).round(
                                     "1min"
@@ -231,11 +194,14 @@ def wrap(model_name, model_version, r_threshold):
                     pd.Series(close_position_responce).to_frame().transpose()
                 )
             # 5
-            to_sell = pd.read_csv(TMP_DIR / "to_sell.csv")
+            # to_sell = pd.read_csv(TMP_DIR / "to_sell.csv")
+
             position_metrics = pd.read_csv(TMP_DIR / "position_metrics.csv")
             current_time = datetime.now()
 
-            need_to_sell_bool = pd.to_datetime(position_metrics.sell_date) < current_time
+            need_to_sell_bool = (
+                pd.to_datetime(position_metrics.sell_date) < current_time
+            )
             sell_bool = need_to_sell_bool & (position_metrics.sold == False)
             logging.info(f"Time now is: {current_time}")
             for i in position_metrics[sell_bool].dealId:
@@ -263,7 +229,9 @@ def wrap(model_name, model_version, r_threshold):
 
             # update
             position_metrics.sold = need_to_sell_bool  # We assume that those that we needed to sell have succesfully been sold
-            position_metrics.to_csv(TMP_DIR / "position_metrics.csv", mode="w", header=True, index=False)
+            position_metrics.to_csv(
+                TMP_DIR / "position_metrics.csv", mode="w", header=True, index=False
+            )
 
             # with sqlite3.connect(TMP_DIR / "autoIG.sqlite") as sqliteConnection:
             #     # Maybe open and close connection only once at the begining and end?
@@ -297,8 +265,6 @@ def run():
         run_data = run.data  # contains all run data
         run_params = run_data.params
         epic = run_params["epic"]
-        # past_periods_needed = int(run_params['past_periods_needed']) # These are used in on_update function
-        # target_periods_in_future = int(run_params['target_periods_in_future'])
         on_update = wrap(model_name, model_version, r_threshold)
 
         # model = load_model(f"models:/{model_name}/{model_version}")
@@ -316,7 +282,7 @@ def run():
             items=["L1:" + epic],
             fields=["UPDATE_TIME", "BID", "OFFER", "MARKET_STATE"],
         )
-        print(model_name, model_version, r_threshold)
+        print(f"{model_name}, {model_version}, {r_threshold}")
 
         sub.addlistener(on_update)
         ig_stream_service.ls_client.subscribe(sub)
