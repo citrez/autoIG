@@ -3,7 +3,10 @@ from trading_ig.config import config
 
 
 def open_position_config_(epic, size=1.0) -> dict[str, str]:
-    """The configutation to create an open position"""
+    """
+    The statndard configutation to create an open position.
+    Size of 1. Buying possition
+    """
     return {
         "epic": epic,
         "currency_code": "GBP",
