@@ -1,4 +1,5 @@
 """
+This fetches the latest data from yahoo finance 
 Historical price data points per week: 10,000 (Applies to price history endpoints)
 """
 import pandas as pd
@@ -7,9 +8,7 @@ from autoIG.instruments import Epics, Tickers
 from autoIG.config import Source
 from autoIG.utils import DATA_DIR
 import logging
-
 from datetime import timedelta, datetime
-
 
 reload_data_config = dict()
 reload_data_config["resolution"] = "1min"
@@ -74,13 +73,16 @@ def fetch_all_training_data(start_date, end_date):
 
 
 def make_training_data(path):
+    """
+    This takes all the saved data e.g 2022-01-01_to_2022-01-04 and adds it all together
+    """
     model_data_dir = DATA_DIR / "training" / path
     if (model_data_dir / "full_data.csv").exists():
         (model_data_dir / "full_data.csv").unlink()
         logging.info("Removeed full_data.csv")
 
     dfs = []
-    for i in model_data_dir.iterdir():
+    for i in [f for f in model_data_dir.iterdir() if f.suffix =='.csv']:
         dfs.append(pd.read_csv(i))
     full_data = pd.concat(dfs, axis="rows")
     full_data = full_data.sort_values("datetime", ascending=False)
@@ -92,7 +94,7 @@ def make_training_data(path):
     logging.info(f"Created full_data.csv")
     logging.info(f"full_data rows: {full_data.shape[0]:,}")
     logging.info(
-        f"datetime range: {full_data.datetime.min()} : {full_data.datetime.max()}"
+        f"datetime range: {str(full_data.datetime.min().date())} : {str(full_data.datetime.max().date() )}"
     )
 
     return None
@@ -109,23 +111,34 @@ def inspect_training_data():
     datetimes = datetimes.set_index("datetime")
     datetimes.index = pd.to_datetime(datetimes.index)
     import matplotlib.pyplot as plt
+    import matplotlib.dates as mdates
 
-    datetimes.resample("60min").count().plot()
+    fig,ax = plt.subplots()
+    plt_data = datetimes.resample("120min").count()
+    plt.plot(plt_data.index,plt_data['count'])
+    fig.set_size_inches(w= 12,h= 3)
+    ax.xaxis.set_major_formatter(mdates.DateFormatter('%d-%m-%y'))
+    ax.xaxis.set_major_locator(mdates.DayLocator(interval=5))
     plt.savefig(DATA_DIR / "training/YF/CL=F/1m/fig.png")
     return None
 
 
 def training_data_runner():
-    "Perform the actions needed to get and update training data"
+    """Perform the actions needed to get, update and then inspect the training data"""
+    make_training_data("YF/CL=F/1m") # Do this first
+
     max_datetime = pd.read_csv(
         DATA_DIR / "training/YF/CL=F/1m/full_data.csv", usecols=["datetime"]
     ).max()
 
     max_date = pd.to_datetime(max_datetime)[0].date() + timedelta(days=1)
     yesterday = datetime.now().date() - timedelta(days=1)
+    logging.info(f"Max date: {max_date} Yesterday: {yesterday}")
     if max_date < yesterday:
         fetch_all_training_data(start_date=str(max_date), end_date=str(yesterday))
         make_training_data("YF/CL=F/1m")
+        inspect_training_data()
+
     else:
         logging.info("No need to fetch new data and re-make full_data.csv")
     return None
@@ -138,4 +151,3 @@ if __name__ == "__main__":
         datefmt="%Y-%m-%d %H:%M:%S",
     )
     training_data_runner()
-    inspect_training_data()
