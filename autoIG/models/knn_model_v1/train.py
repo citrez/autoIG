@@ -2,6 +2,7 @@ from functools import partial
 from pathlib import Path
 
 import matplotlib.pyplot as plt
+import matplotlib.ticker as mticker
 import mlflow
 import mlflow.sklearn
 import mlflow.models
@@ -30,7 +31,6 @@ from autoIG.modelling import (
 )
 from autoIG.utils import log_shape
 
-
 MLFLOW_RUN = True
 # MLflow config
 EXPERIMENT_NAME = "knn-reg"
@@ -45,11 +45,10 @@ from model_config import (
     past_periods_needed,
     target_periods_in_future,
     resolution,
-    past_periods
+    past_periods,
 )
 
-# The fetching of the data from IG is done in another script.
-# Do a load of local data.
+
 # We could do a check on local data to check we have what we need, and if
 # We dont get an error to fetch the data
 
@@ -61,7 +60,7 @@ model_data = pd.read_csv(
     / ticker.replace(".", "_")
     / resolution
     / "full_data.csv",
-    parse_dates=["datetime"],  # ,dtype={'datetime':np.datetime64}
+    parse_dates=["datetime"],
 )
 
 # as a rule, dont use massive function
@@ -84,10 +83,12 @@ def create_pipeline():
     )
     # fillna_transformer = FunctionTransformer(fillna_)
     fillna_transformer = SimpleImputer(strategy="constant", fill_value=-999)
-    fillna_transformer.set_output(transform="pandas") # ISSUE: This shouldnt be needed but is.
+    fillna_transformer.set_output(
+        transform="pandas"
+    )  # ISSUE: This shouldnt be needed but is.
 
     normalise_transformer = FunctionTransformer(normalise_)
-    knn_params = {"n_neighbors": 10}
+    knn_params = {"n_neighbors": 5}
     pl = Pipeline(
         [
             (
@@ -113,7 +114,9 @@ pl = create_pipeline()
 X = model_data[["ASK_OPEN"]]
 y = model_data["r"]
 
-X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=3000, shuffle=False)
+X_train, X_test, y_train, y_test = train_test_split(
+    X, y, test_size=int(len(y) * 0.1), shuffle=False
+)
 # How do we do this from the begining, we want the best (most recent) data to be used in training
 
 logging.info(f"Train min date: {pd.Series(X_train.index).min()}")
@@ -154,17 +157,26 @@ if MLFLOW_RUN:
         )
 
         fig, (ax1, ax2) = plt.subplots(1, 2)
-        ax1.scatter(y_train, pl.predict(X_train), s=0.7, alpha=0.8)
+        y_preds_train = pl.predict(X_train)
+        q = 0.9999
+        ax1.scatter(y_train,y_preds_train , s=0.7, alpha=0.8)
         ax1.set_title("train")
-        ax2.scatter(y_test, pl.predict(X_test), s=0.7, alpha=0.8)
+        ax1.set_xlim([np.quantile(y_train,1-q),np.quantile(y_train,q)])
+        ax1.set_ylim([np.quantile(y_preds_train,1-q),np.quantile(y_preds_train,q)])
+
+        y_preds_test= pl.predict(X_test)
+        ax2.scatter(y_test,y_preds_test , s=0.7, alpha=0.8)
+        ax2.set_xlim([np.quantile(y_test,1-q),np.quantile(y_test,q)])
+        ax2.set_ylim([np.quantile(y_preds_test,1-q),np.quantile(y_preds_test,q)])
+
         ax2.set_title("test")
         ax1.set_xlabel("y_true")
         ax1.set_ylabel("y_pred")
         ax2.set_xlabel("y_true")
         ax2.set_ylabel("y_pred")
         fig.set_size_inches(h=5, w=10)
-        ax1.axline((1.03, 1.03), (1.04, 1.04))
-        ax2.axline((1.03, 1.03), (1.04, 1.04))
+        ax1.axline((1.03, 1.03), (1.04, 1.04),color='black',linestyle = '--')
+        ax2.axline((1.03, 1.03), (1.04, 1.04),color='black',linestyle = '--')
         plt.suptitle("training_and_testing_predictions_scatter")
 
         mlflow.log_figure(fig, "training_and_testing_predictions_scatter.png")
@@ -190,6 +202,7 @@ if MLFLOW_RUN:
         ax0.scatter(y_train, (y_train - pl.predict(X_train)), s=0.7, alpha=0.8)
         ax0.set_title("train")
         ax0.set_xlabel("y_true")
+        ax0.xaxis.set_major_formatter(mticker.FuncFormatter(lambda x,pos: str(round(x,3)) ))
         ax1.set_xlabel("y_true")
         ax1.scatter(y_test, (y_test - pl.predict(X_test)), s=0.7, alpha=0.8)
         ax1.set_title("test")
@@ -224,50 +237,51 @@ if MLFLOW_RUN:
         CURRENT_DIR = Path(__file__).parent
         with open(CURRENT_DIR / "pl.html", "w") as f:
             f.write(estimator_html_repr(pl))
-            mlflow.log_artifact(local_path=CURRENT_DIR / "pl.html", artifact_path="docs")
+            mlflow.log_artifact(
+                local_path=CURRENT_DIR / "pl.html", artifact_path="docs"
+            )
             (CURRENT_DIR / "pl.html").unlink()
-            
 
         ## KNN specific metrics
 
-        mlflow.log_metric(
-            "testing_neigh_dist_n_neighbors_1",
-            pl.named_steps.predictor.kneighbors(
-                pl[:-1].transform(X_test), n_neighbors=1
-            )[0].sum(),
-        )
-        mlflow.log_metric(
-            "training_neigh_dist_n_neighbors_1",
-            pl.named_steps.predictor.kneighbors(
-                pl[:-1].transform(X_train), n_neighbors=1
-            )[0].sum(),
-        )
+        # mlflow.log_metric(
+        #     "testing_neigh_dist_n_neighbors_1",
+        #     pl.named_steps.predictor.kneighbors(
+        #         pl[:-1].transform(X_test), n_neighbors=1
+        #     )[0].sum(),
+        # )
+        # mlflow.log_metric(
+        #     "training_neigh_dist_n_neighbors_1",
+        #     pl.named_steps.predictor.kneighbors(
+        #         pl[:-1].transform(X_train), n_neighbors=1
+        #     )[0].sum(),
+        # )
 
-        mlflow.log_metric(
-            "testing_neigh_dist_n_neighbors_5",
-            pl.named_steps.predictor.kneighbors(
-                pl[:-1].transform(X_test), n_neighbors=5
-            )[0].sum(),
-        )
-        mlflow.log_metric(
-            "training_neigh_dist_n_neighbors_5",
-            pl.named_steps.predictor.kneighbors(
-                pl[:-1].transform(X_train), n_neighbors=5
-            )[0].sum(),
-        )
+        # mlflow.log_metric(
+        #     "testing_neigh_dist_n_neighbors_5",
+        #     pl.named_steps.predictor.kneighbors(
+        #         pl[:-1].transform(X_test), n_neighbors=5
+        #     )[0].sum(),
+        # )
+        # mlflow.log_metric(
+        #     "training_neigh_dist_n_neighbors_5",
+        #     pl.named_steps.predictor.kneighbors(
+        #         pl[:-1].transform(X_train), n_neighbors=5
+        #     )[0].sum(),
+        # )
 
-        mlflow.log_metric(
-            "testing_neigh_dist_n_neighbors_10",
-            pl.named_steps.predictor.kneighbors(
-                pl[:-1].transform(X_test), n_neighbors=10
-            )[0].sum(),
-        )
-        mlflow.log_metric(
-            "training_neigh_dist_n_neighbors_10",
-            pl.named_steps.predictor.kneighbors(
-                pl[:-1].transform(X_train), n_neighbors=10
-            )[0].sum(),
-        )
+        # mlflow.log_metric(
+        #     "testing_neigh_dist_n_neighbors_10",
+        #     pl.named_steps.predictor.kneighbors(
+        #         pl[:-1].transform(X_test), n_neighbors=10
+        #     )[0].sum(),
+        # )
+        # mlflow.log_metric(
+        #     "training_neigh_dist_n_neighbors_10",
+        #     pl.named_steps.predictor.kneighbors(
+        #         pl[:-1].transform(X_train), n_neighbors=10
+        #     )[0].sum(),
+        # )
 
         fig, ax = plt.subplots()
         bins = int(len(y_train) * 0.001)
@@ -277,18 +291,18 @@ if MLFLOW_RUN:
         # how close are they to other observations in the trainig set.
         # We would hope that the training and test set are both
         # equally far away from test set items
+        train_hist = pl.named_steps.predictor.kneighbors(
+            pl[:-1].transform(X_train), n_neighbors=5
+        )[0].sum(axis=1)
+        test_hist = pl.named_steps.predictor.kneighbors(
+            pl[:-1].transform(X_test), n_neighbors=5
+        )[0].sum(axis=1)
         plt.hist(
-            [
-                pl.named_steps.predictor.kneighbors(
-                    pl[:-1].transform(X_train), n_neighbors=5
-                )[0].sum(axis=1),
-                pl.named_steps.predictor.kneighbors(
-                    pl[:-1].transform(X_test), n_neighbors=5
-                )[0].sum(axis=1),
-            ],
+            [train_hist, test_hist],
             bins=bins,
+            # histtype='stepfilled',
             alpha=0.5,
-            # range=(0, 0.003),
+            range=(np.quantile(train_hist,0), np.quantile(train_hist,0.99)),
             label=["X_train", "X_test"],
             density=True,
         )
@@ -304,21 +318,22 @@ if MLFLOW_RUN:
         # The distances to the X_train
         # Q: Is the shorter the distances the better the prediction is?
         X_test_distance_to = pl[-1].kneighbors(X_test_transformed)[0].sum(axis=1)
-        filter_bool = X_test_distance_to < 50  # get rid of outliers
         absoloute_error = np.array((pl.predict(X_test) - y_test).abs())
 
         fig, ax = plt.subplots()
         ax.scatter(
-            X_test_distance_to[filter_bool],
-            absoloute_error[filter_bool],
+            X_test_distance_to,
+            absoloute_error,
             s=1,
             alpha=0.8,
         )
-        # ax.set_xlim([0, 0.02])
-        ax.set_xlabel("distance_to")
+        q = 0.999
+        ax.set_xlim([np.quantile(X_test_distance_to,1-q), np.quantile(X_test_distance_to,q)])
+        ax.set_ylim([np.quantile(absoloute_error,1-q), np.quantile(absoloute_error,q)])
+        ax.set_xlabel("Sum of distance to the k training points")
         ax.set_ylabel("absoloute_error")
         ax.set_title("X_test")
         mlflow.log_figure(fig, "closeness_vrs_error.png")
-        plt.close("all")
+        plt.close()
 
     print(f"Logged data and model in run {run.info.run_id}")
