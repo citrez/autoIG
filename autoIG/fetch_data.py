@@ -118,7 +118,7 @@ def inspect_training_data():
     plt.plot(plt_data.index,plt_data['count'])
     fig.set_size_inches(w= 12,h= 3)
     ax.xaxis.set_major_formatter(mdates.DateFormatter('%d-%m-%y'))
-    ax.xaxis.set_major_locator(mdates.DayLocator(interval=5))
+    ax.xaxis.set_major_locator(mdates.DayLocator(interval=7))
     plt.savefig(DATA_DIR / "training/YF/CL=F/1m/fig.png")
     return None
 

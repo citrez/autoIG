@@ -64,7 +64,7 @@ def wrap(model_name, model_version, r_threshold, run, ig_service):
     )  # These are used in on_update function
     target_periods_in_future = int(run.data.params["target_periods_in_future"])
 
-    model = load_model(f"models:/{model_name}/{model_version}")
+    pipeline = load_model(f"models:/{model_name}/{model_version}")
     write_stream_length(0)
 
     # Set up Subscription
@@ -128,9 +128,15 @@ def wrap(model_name, model_version, r_threshold, run, ig_service):
             write_stream_length(stream_length)
 
             # 2
-            predictions = model.predict(stream[["ASK_OPEN"]])  # predict on all stream
+            predictions = pipeline.predict(stream[["ASK_OPEN"]][(past_periods_needed+1):])  # predict on all stream
             latest_prediction = predictions[-1]
             logging.info(f"Latest prediction: {latest_prediction}")
+            if model_name == 'knn-reg-model':
+                # Get specific metrics from certain models that not all models expose
+                # Perhaps think of adding this to a dictionary in position_metrics as a dictionary
+                distance_to, indecies_of = pipeline[-1].kneighbors(stream[["ASK_OPEN"]][(past_periods_needed+1):])
+                indecies_of = indecies_of[0]
+                distance_to = distance_to[0]
 
             # 3
             if latest_prediction > r_threshold:
@@ -164,6 +170,7 @@ def wrap(model_name, model_version, r_threshold, run, ig_service):
                         "sold": False,
                     }
                 )
+                # knn_metrics
                 to_sell = pd.DataFrame(  # get rid of this
                     {
                         # "dealreference": [resp["dealReference"]],

@@ -10,8 +10,8 @@ ticker = Tickers.US_CRUDE_OIL.value
 # But really this should be a seperate piece of analysis?
 threshold = 1.01
 # how many many rows we need to get a proper prediction, max of all past periods
-past_periods_needed = 3
-past_periods = 3
+past_periods_needed = 10
+past_periods = 10
 # The numer of periods in the future we are trying to predict
 target_periods_in_future = 1
 resolution = "1m"
