@@ -110,6 +110,7 @@ def generate_target_1(df, goes_up_by, number_of_periods=None) -> pd.Series:
 
 
 def adapt_yf_data(d_: pd.DataFrame):
+    "Adapting data taken from yahoo finance to be suitable to enter the model pipeline"
     d = d_.copy()
     d = (
         d.pipe(adapt_YF_data_for_training)

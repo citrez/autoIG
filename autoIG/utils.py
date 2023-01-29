@@ -1,5 +1,4 @@
 from datetime import datetime
-from IPython.display import display
 import pandas as pd
 from pathlib import Path
 from autoIG.config import close_position_config_
