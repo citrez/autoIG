@@ -28,7 +28,7 @@ from autoIG.modelling import (
     # fillna_,
     normalise_,
 )
-from autoIG.utils import print_shape
+from autoIG.utils import log_shape
 
 
 MLFLOW_RUN = True
@@ -72,7 +72,7 @@ model_data = (
     .pipe(generate_target)
     .dropna()
 )
-model_data.pipe(print_shape)
+model_data.pipe(log_shape)
 
 
 def create_pipeline():

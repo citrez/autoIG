@@ -1,9 +1,8 @@
 import pandas as pd
 import numpy as np
-from autoIG.utils import print_shape
+from autoIG.utils import log_shape
 
-##Tools to create the TARGET 'r'
-
+## Tools to create the TARGET 'r'
 
 def create_future_bid_Open(df, future_periods=1):
     """
@@ -118,7 +117,7 @@ def adapt_yf_data(d_: pd.DataFrame):
         .pipe(generate_target)
         .dropna()
     )
-    d.pipe(print_shape)
+    d.pipe(log_shape)
 
 
 # def adapt_ig_data(d_: pd.DataFrame):

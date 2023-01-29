@@ -7,13 +7,12 @@ from datetime import datetime
 from mlflow import MlflowClient
 from autoIG.utils import (
     prices_stream_responce,
-    read_stream,
+    read_from_tmp,
     TMP_DIR,
     read_stream_length,
     write_stream_length,
-    whipe_data,
 )
-from autoIG.create_data import write_to_transations_joined
+from autoIG.create_data import write_to_transations_joined, whipe_data
 from deployment_config import models_to_deploy
 
 # import sqlite3
@@ -45,19 +44,19 @@ whipe_data()
 # TODO: Sort out logger handling
 
 
-def wrap(model_name, model_version, r_threshold):
+def wrap(model_name, model_version, r_threshold, run):
     """
     On update only takes one arguemnt. So we use a closure to define the local
     variables that are being fed into on_update
     """
     # Get information for deployment from the model itself
-    client = MlflowClient()
-    mv = client.get_model_version(model_name, model_version)
-    model_run_id = mv.run_id
-    run = client.get_run(model_run_id)
+    # client = MlflowClient()
+    # mv = client.get_model_version(model_name, model_version)
+    # model_run_id = mv.run_id
+    # run = client.get_run(model_run_id)
     run_data = run.data  # contains all run data
     run_params = run_data.params
-    epic = run_params["epic"]
+    # epic = run_params["epic"]
     past_periods_needed = int(
         run_params["past_periods_needed"]
     )  # These are used in on_update function
@@ -96,7 +95,7 @@ def wrap(model_name, model_version, r_threshold):
         # TODO: #3 Change stream to price_stream_resampled
 
         append_with_header(prices_stream_responce(item), "raw_stream.csv")
-        raw_stream = read_stream("raw_stream.csv")
+        raw_stream = read_from_tmp("raw_stream.csv")
         # We are resampling everytime time, this is inefficient
         # Dont take the last one since it is not complete yet.
         stream = (
@@ -218,6 +217,7 @@ def wrap(model_name, model_version, r_threshold):
                         }
                     )
                     append_with_header(sold, "sold.csv")
+
             close_open_positions(position_metrics[sell_bool].dealId)
 
             # for i in position_metrics[sell_bool].dealId:
@@ -244,7 +244,9 @@ def wrap(model_name, model_version, r_threshold):
             #     #     sold.to_sql(name="sold", con=sqliteConnection, if_exists="append")
 
             # update
-            position_metrics.sold = need_to_sell_bool  # We assume that those that we needed to sell have succesfully been sold
+
+            # We assume that those that we needed to sell have succesfully been sold
+            position_metrics.sold = need_to_sell_bool
             position_metrics.to_csv(
                 TMP_DIR / "position_metrics.csv", mode="w", header=True, index=False
             )
@@ -278,10 +280,9 @@ def run():
         mv = client.get_model_version(model_name, model_version)
         model_run_id = mv.run_id
         run = client.get_run(model_run_id)
-        run_data = run.data  # contains all run data
-        run_params = run_data.params
-        epic = run_params["epic"]
-        on_update = wrap(model_name, model_version, r_threshold)
+        # run_data = run.data  # contains all run data
+        # run_params = run_data.params
+        # epic = run_params["epic"]
 
         # model = load_model(f"models:/{model_name}/{model_version}")
         # write_stream_length(0)
@@ -295,11 +296,12 @@ def run():
 
         sub = Subscription(
             mode="MERGE",
-            items=["L1:" + epic],
+            items=["L1:" + run.data.params["epic"]],
             fields=["UPDATE_TIME", "BID", "OFFER", "MARKET_STATE"],
         )
         print(f"{model_name}, {model_version}, {r_threshold}")
 
+        on_update = wrap(model_name, model_version, r_threshold, run)
         sub.addlistener(on_update)
         ig_stream_service.ls_client.subscribe(sub)
     while True:

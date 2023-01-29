@@ -11,19 +11,8 @@ TMP_DIR = ROOT_DIR / "tmp"  # This is in the package TODO: Move outside package
 DATA_DIR = ROOT_DIR.parent / "data"
 
 
-def market_series(m) -> tuple[pd.Series]:
-    """
-    We get information about the market using IG's `fetch_market_by_epic` method.
-    Return the instrument, dealing rules and snapshot series, in that order
-    """
-    i = pd.Series(m.instrument)
-    d = pd.Series(m.dealingRules)
-    s = pd.Series(m.snapshot)
-    return (i, d, s)
-
-
 ## READ/WRITE I/O
-def read_stream(file="stream_.csv"):
+def read_from_tmp(file="stream_.csv"):
     path = TMP_DIR / file
 
     "Read the persistent stream data and take the last 3 rows"
@@ -59,11 +48,6 @@ def write_stream_length(n):
 #     df.index = pd.to_datetime(df.index)
 #     return df
 
-# DEPRECIATED. Get MLflow to save models automatically
-# def load_model(path: str):
-#     full_path = ROOT_DIR / "resources" / "models" / path
-#     return joblib.load(full_path)
-
 
 def parse_time(time: str):
     """
@@ -97,32 +81,9 @@ def append_with_header(df, file):
         df.to_csv(TMP_DIR / file, mode="a+", header=False, index=False)
 
 
-def standardise_column_names(df: pd.DataFrame):
-    df_new = df.copy()
-    df_new.columns = ["_".join(i).lower() for i in df_new.columns]
-    return df_new
-
-
-def to_hours(td):
-    "Gives the number of hours diffreence between two timedeltas"
-    return td.days * 24 + td.seconds // 3600
-
-
-def display_df(df, n=1):
-    display(df.head(n))
+def log_shape(df):
+    logging.info(f"Shape: {df.shape[0]:,} {df.shape[1]:,}")
     return df
 
 
-def print_shape(df):
-    print(f"Shape: {df.shape[0]:,} {df.shape[1]:,}")
-    return df
 
-
-def whipe_data():
-    pd.DataFrame().to_csv(TMP_DIR / "raw_stream.csv", index=False, header=False)
-    pd.DataFrame().to_csv(TMP_DIR / "sold.csv", index=False, header=False)
-    pd.DataFrame().to_csv(TMP_DIR / "position_metrics.csv", index=False, header=False)
-    pd.DataFrame().to_csv(TMP_DIR / "to_sell.csv", index=False, header=False)
-    Path(TMP_DIR / "autoIG.sqlite").unlink()
-    (TMP_DIR / "autoIG.sqlite").touch()
-    logging.info("Whiped temporary data")

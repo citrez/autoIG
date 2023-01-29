@@ -22,7 +22,7 @@ from autoIG.modelling import (
     fillna_,
     normalise_,
 )
-from autoIG.utils import print_shape
+from autoIG.utils import log_shape
 
 # MLflow config
 EXPERIMENT_NAME = "stacked-linear-reg"
@@ -98,7 +98,7 @@ if model_config["SOURCE"] == "YF":
         .pipe(generate_target)
         .dropna()
     )
-model_data.pipe(print_shape)
+model_data.pipe(log_shape)
 
 create_past_ask_Open_num_small = partial(create_past_ask_Open, num=3)
 create_past_ask_Open_num_medium = partial(create_past_ask_Open, num=10)

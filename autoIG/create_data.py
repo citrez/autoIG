@@ -1,6 +1,7 @@
 "Ulitimately this should all be data already in the database and this should be a view/ task"
 from datetime import datetime, timedelta
-
+from pathlib import Path
+import logging
 import pandas as pd
 from trading_ig import IGService
 
@@ -146,6 +147,7 @@ def write_to_transations_joined(secs_ago: int):
 
 
 def parse_trade_stream(item):
+    "On poisition update trade stream"
     "Maybe just persist the whole stream to a csv and then use queries to get what we need"
     OPU_dict = item["values"]["OPU"]
     df = pd.DataFrame(
@@ -160,6 +162,16 @@ def parse_trade_stream(item):
         timestamp=OPU_dict["timestamp"],
     )
     return df
+
+def whipe_data():
+    "Whipes the data in tmp/ directory"
+    pd.DataFrame().to_csv(TMP_DIR / "raw_stream.csv", index=False, header=False)
+    pd.DataFrame().to_csv(TMP_DIR / "sold.csv", index=False, header=False)
+    pd.DataFrame().to_csv(TMP_DIR / "position_metrics.csv", index=False, header=False)
+    pd.DataFrame().to_csv(TMP_DIR / "to_sell.csv", index=False, header=False)
+    Path(TMP_DIR / "autoIG.sqlite").unlink()
+    (TMP_DIR / "autoIG.sqlite").touch()
+    logging.info("Whiped temporary data")
 
 
 if __name__ == "__main__":
