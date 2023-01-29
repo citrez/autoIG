@@ -327,7 +327,7 @@ if MLFLOW_RUN:
             s=1,
             alpha=0.8,
         )
-        q = 0.999
+        q = 0.99
         ax.set_xlim([np.quantile(X_test_distance_to,1-q), np.quantile(X_test_distance_to,q)])
         ax.set_ylim([np.quantile(absoloute_error,1-q), np.quantile(absoloute_error,q)])
         ax.set_xlabel("Sum of distance to the k training points")
