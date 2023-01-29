@@ -5,7 +5,6 @@ from trading_ig.config import config
 def open_position_config_(epic, size=1.0) -> dict[str, str]:
     """
     The statndard configutation to create an open position.
-    Size of 1. Buying possition
     """
     return {
         "epic": epic,
@@ -33,9 +32,11 @@ def close_position_config_(
     """
     The configutation to create a closed position.
     When an open position is open, a responce is returned with a dealId.
-    This dealId is used to close the position.
+    This is the dealId used to close the position.
 
-    NOTE: Either enter an epic or a deal_id, not both!! (Better to enter a deal_id, more specific. Want to have more fine grained control than closing all epics)
+    NOTE: Either enter an epic or a deal_id, not both!!
+    (Better to enter a deal_id, more specific.
+    Want to have more fine grained control than closing all epics)
     """
     return {
         "deal_id": dealId,

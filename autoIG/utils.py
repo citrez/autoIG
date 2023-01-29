@@ -2,6 +2,7 @@ from datetime import datetime
 from IPython.display import display
 import pandas as pd
 from pathlib import Path
+from autoIG.config import close_position_config_
 import logging
 import os
 
@@ -85,5 +86,23 @@ def log_shape(df):
     logging.info(f"Shape: {df.shape[0]:,} {df.shape[1]:,}")
     return df
 
-
+def close_open_positions(s: pd.Series,ig_service):
+    """
+    Takes a series of DealIds positions to close, and closes them.
+    Updating the sold and 
+    """
+    for i in s:
+        logging.info(f"Closing a position with DealId: {i}")
+        # Q: How does close position responce differ from open position responce
+        close_position_responce = ig_service.close_open_position(
+            **close_position_config_(dealId=i)
+        )
+        sold = pd.DataFrame(
+            {
+                "dealId": [i],
+                "close_level_resp": close_position_responce["level"],
+            }
+        )
+        append_with_header(sold, "sold.csv")
+    return None
 

@@ -141,7 +141,7 @@ def wrap(model_name, model_version, r_threshold, run, ig_service):
                 # resp in columns in confirms.create_open_positiion
 
                 logging.info(
-                    f" { open_position_responce['dealStatus'] } with dealId {open_position_responce['dealId']}"
+                    f"Opened position with DealId: {open_position_responce['dealId']}. Status: { open_position_responce['dealStatus'] }"
                 )
                 # 4
                 position_metrics = pd.DataFrame(
@@ -159,7 +159,7 @@ def wrap(model_name, model_version, r_threshold, run, ig_service):
                                 + timedelta(minutes=target_periods_in_future)
                             )
                         ],
-                        "buy_level_resp": [open_position_responce["level"]],
+                        "buy_level_responce": [open_position_responce["level"]],
                         # We get this from transactions, but doulbe check
                         "sold": False,
                     }
@@ -168,7 +168,6 @@ def wrap(model_name, model_version, r_threshold, run, ig_service):
                     {
                         # "dealreference": [resp["dealReference"]],
                         "dealId": [open_position_responce["dealId"]],
-                        "buy_date": [pd.to_datetime(open_position_responce["date"])],
                         "sell_date": [  # change to sell_date
                             (
                                 pd.to_datetime(open_position_responce["date"]).round(
@@ -198,17 +197,20 @@ def wrap(model_name, model_version, r_threshold, run, ig_service):
             # to_sell = pd.read_csv(TMP_DIR / "to_sell.csv")
 
             position_metrics = pd.read_csv(TMP_DIR / "position_metrics.csv")
-            current_time = datetime.now()
 
             need_to_sell_bool = (
-                pd.to_datetime(position_metrics.sell_date) < current_time
+                pd.to_datetime(position_metrics.sell_date) < datetime.now()
             )
             sell_bool = need_to_sell_bool & (position_metrics.sold == False)
-            logging.info(f"Time now is: {current_time}")
 
             def close_open_positions(s: pd.Series):
+                """
+                Takes a series of DealIds positions to close, and closes them.
+                Updating the sold and 
+                """
                 for i in s:
-                    logging.info(f"Closing a position {i}")
+                    logging.info(f"Closing a position with DealId: {i}")
+                    # Q: How does close position responce differ from open position responce
                     close_position_responce = ig_service.close_open_position(
                         **close_position_config_(dealId=i)
                     )
@@ -219,6 +221,7 @@ def wrap(model_name, model_version, r_threshold, run, ig_service):
                         }
                     )
                     append_with_header(sold, "sold.csv")
+                return None
 
             close_open_positions(position_metrics[sell_bool].dealId)
 
@@ -245,9 +248,8 @@ def wrap(model_name, model_version, r_threshold, run, ig_service):
             #     # with sqlite3.connect(TMP_DIR / "autoIG.sqlite") as sqliteConnection:
             #     #     sold.to_sql(name="sold", con=sqliteConnection, if_exists="append")
 
-            # update
 
-            # We assume that those that we needed to sell have succesfully been sold
+            # This assumes that those that we needed to sell were succesfully sold
             position_metrics.sold = need_to_sell_bool
             position_metrics.to_csv(
                 TMP_DIR / "position_metrics.csv", mode="w", header=True, index=False
