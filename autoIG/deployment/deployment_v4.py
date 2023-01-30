@@ -18,7 +18,7 @@ from autoIG.deployment.deployment_config import models_to_deploy
 
 # import sqlite3
 import logging
-from autoIG.utils import append_with_header
+from autoIG.utils import append_with_header, close_open_positions
 from trading_ig import IGService, IGStreamService
 from trading_ig.lightstreamer import Subscription
 from autoIG.config import (
@@ -26,6 +26,7 @@ from autoIG.config import (
     close_position_config_,
     ig_service_config,
 )
+
 import pandas as pd
 from datetime import timedelta
 from mlflow.sklearn import load_model  # this returns the actual sklearn model
@@ -51,14 +52,6 @@ def wrap(model_name, model_version, r_threshold, run, ig_service):
     On update only takes one arguemnt. So we use a closure to define the local
     variables that are being fed into on_update
     """
-    # Get information for deployment from the model itself
-    # client = MlflowClient()
-    # mv = client.get_model_version(model_name, model_version)
-    # model_run_id = mv.run_id
-    # run = client.get_run(model_run_id)
-    # run_data = run.data  # contains all run data
-    # run_params = run_data.params
-    # epic = run_params["epic"]
     past_periods_needed = int(
         run.data.params["past_periods_needed"]
     )  # These are used in on_update function
@@ -66,13 +59,6 @@ def wrap(model_name, model_version, r_threshold, run, ig_service):
 
     pipeline = load_model(f"models:/{model_name}/{model_version}")
     write_stream_length(0)
-
-    # Set up Subscription
-    # Is this really needed? We've already set up a service outside this
-
-    # ig_service = IGService(**ig_service_config)
-    # ig_stream_service = IGStreamService(ig_service)
-    # ig_stream_service.create_session()
 
     deployment_start = datetime.now()
 
@@ -103,20 +89,20 @@ def wrap(model_name, model_version, r_threshold, run, ig_service):
         raw_stream_max_updated_at = raw_stream.index.max()
 
         if stream_max_updated_at < raw_stream_max_updated_at.replace(second=0):
-            print('Do This')
+            print("Do This")
 
-        # We are resampling everytime time, this is inefficient
-        # Dont take the last one since it is not complete yet.
-        stream = (
-            raw_stream.resample(pd.Timedelta(seconds=60), label="right")
-            .last()
-            .dropna()  # since if there is a gap in raw stream all the intermediate resamples are filled with nas
-            .iloc[:-1, :]
-        )
-        stream.to_csv(TMP_DIR / "stream.csv", mode="w", header=True)
-        # with sqlite3.connect(TMP_DIR / "autoIG.sqlite") as sqliteConnection:
-        #     stream.to_sql(name="stream", con=sqliteConnection, if_exists="append")
-        stream_length = stream.shape[0]
+            # We are resampling everytime time, this is inefficient
+            # Dont take the last one since it is not complete yet.
+            stream = (
+                raw_stream.resample(pd.Timedelta(seconds=60), label="right")
+                .last()
+                .dropna()  # since if there is a gap in raw stream all the intermediate resamples are filled with nas
+                .iloc[:-1, :]
+            )
+            stream.to_csv(TMP_DIR / "stream.csv", mode="w", header=True)
+            # with sqlite3.connect(TMP_DIR / "autoIG.sqlite") as sqliteConnection:
+            #     stream.to_sql(name="stream", con=sqliteConnection, if_exists="append")
+            stream_length = stream.shape[0]
 
         # Only predict when there is a new piece of stream data
         if (stream_length >= past_periods_needed) and (
@@ -181,21 +167,7 @@ def wrap(model_name, model_version, r_threshold, run, ig_service):
                     }
                 )
                 # knn_metrics
-                to_sell = pd.DataFrame(  # get rid of this
-                    {
-                        # "dealreference": [resp["dealReference"]],
-                        "dealId": [open_position_responce["dealId"]],
-                        "sell_date": [  # change to sell_date
-                            (
-                                pd.to_datetime(open_position_responce["date"]).round(
-                                    "1min"
-                                )
-                                + timedelta(minutes=target_periods_in_future)
-                            )
-                        ],
-                        "sold": False,
-                    }
-                )
+                # to_sell = pd.DataFrame()
                 # append_with_header(to_sell, "to_sell.csv")
                 append_with_header(position_metrics, "position_metrics.csv")
                 # with sqlite3.connect(TMP_DIR / "autoIG.sqlite") as sqliteConnection:
@@ -220,27 +192,29 @@ def wrap(model_name, model_version, r_threshold, run, ig_service):
             )
             sell_bool = need_to_sell_bool & (position_metrics.sold == False)
 
-            def close_open_positions(s: pd.Series):
-                """
-                Takes a series of DealIds positions to close, and closes them.
-                Updating the sold and
-                """
-                for i in s:
-                    logging.info(f"Closing a position with DealId: {i}")
-                    # Q: How does close position responce differ from open position responce
-                    close_position_responce = ig_service.close_open_position(
-                        **close_position_config_(dealId=i)
-                    )
-                    sold = pd.DataFrame(
-                        {
-                            "dealId": [i],
-                            "close_level_responce": close_position_responce["level"],
-                        }
-                    )
-                    append_with_header(sold, "sold.csv")
-                return None
+            # def close_open_positions(s: pd.Series):
+            #     """
+            #     Takes a series of DealIds positions to close, and closes them.
+            #     Updating the sold and
+            #     """
+            #     for i in s:
+            #         logging.info(f"Closing a position with DealId: {i}")
+            #         # Q: How does close position responce differ from open position responce
+            #         close_position_responce = ig_service.close_open_position(
+            #             **close_position_config_(dealId=i)
+            #         )
+            #         sold = pd.DataFrame(
+            #             {
+            #                 "dealId": [i],
+            #                 "close_level_responce": close_position_responce["level"],
+            #             }
+            #         )
+            #         append_with_header(sold, "sold.csv")
+            #     return None
 
-            close_open_positions(position_metrics[sell_bool].dealId)
+            close_open_positions(
+                position_metrics[sell_bool].dealId, ig_service=ig_service
+            )
 
             # for i in position_metrics[sell_bool].dealId:
             #     logging.info(f"Closing a position {i}")
@@ -284,14 +258,19 @@ def wrap(model_name, model_version, r_threshold, run, ig_service):
             position_metrics = pd.read_csv(TMP_DIR / "position_metrics.csv")
             try:
                 sold = pd.read_csv(TMP_DIR / "sold.csv")
-                position_metrics_merged = position_metrics.merge(sold, how="left")
-                position_metrics_merged["y_true"] = (
-                    position_metrics_merged["close_level_responce"]
-                    + position_metrics_merged["buy_level_responce"]
-                )
-                position_metrics_merged.to_csv(TMP_DIR / "position_metrics_merged.csv",index = False)
             except pd.errors.EmptyDataError:
-                logging.info("No Data in sold")
+                print("Nothing sold yet, creating empty dataframe")
+                sold = pd.DataFrame(columns=["dealId", "close_level_responce"])
+
+            position_metrics_merged = position_metrics.merge(sold, how="left")
+            position_metrics_merged["y_true"] = (
+                position_metrics_merged["close_level_responce"]
+                / position_metrics_merged["buy_level_responce"]
+            )
+            # position_metrics_merged["profit_responce"]
+            position_metrics_merged.to_csv(
+                TMP_DIR / "position_metrics_merged.csv", index=False
+            )
 
         return None
 
@@ -311,12 +290,6 @@ def run():
         mv = client.get_model_version(model_name, model_version)
         model_run_id = mv.run_id
         run = client.get_run(model_run_id)
-        # run_data = run.data  # contains all run data
-        # run_params = run_data.params
-        # epic = run_params["epic"]
-
-        # model = load_model(f"models:/{model_name}/{model_version}")
-        # write_stream_length(0)
 
         # Set up Subscription
         ig_service = IGService(**ig_service_config)
@@ -324,7 +297,6 @@ def run():
         ig_stream_service.create_session()
 
         # deployment_start = datetime.now()
-
         sub = Subscription(
             mode="MERGE",
             items=["L1:" + run.data.params["epic"]],
@@ -339,13 +311,18 @@ def run():
         user_input = input("Enter dd to termiate: ")
         if user_input == "dd":
             break
+
+    close_open_positions(
+        (pd.read_csv(TMP_DIR / "position_metrics.csv").query("sold=='False'").dealId),
+        ig_service=ig_service,
+    )
     ig_stream_service.disconnect()
     return None
 
 
 def deploy():
     run()
-    # sell all open positions to clean up?
+
     return None
 
 

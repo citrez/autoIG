@@ -88,7 +88,8 @@ def log_shape(df):
 def close_open_positions(s: pd.Series,ig_service):
     """
     Takes a series of DealIds positions to close, and closes them.
-    Updating the sold and 
+    Logs the sold things to the sold table, this should be split out of this function 
+    # TODO: Above
     """
     for i in s:
         logging.info(f"Closing a position with DealId: {i}")
@@ -99,7 +100,7 @@ def close_open_positions(s: pd.Series,ig_service):
         sold = pd.DataFrame(
             {
                 "dealId": [i],
-                "close_level_resp": close_position_responce["level"],
+                "close_level_responce": close_position_responce["level"],
             }
         )
         append_with_header(sold, "sold.csv")
