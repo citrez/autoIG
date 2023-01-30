@@ -42,7 +42,7 @@ logging.basicConfig(
 ######
 # WE DO NOT KEEP ANY OLD DATA EACH TIME WE DEPLOY.
 # THIS IS BY CHOICE UNTIL WE HAVE A MORE MATURE PRODUCT
-whipe_data()
+# whipe_data()
 #######
 
 
@@ -99,6 +99,12 @@ def wrap(model_name, model_version, r_threshold, run, ig_service):
 
         append_with_header(prices_stream_responce(item), "raw_stream.csv")
         raw_stream = read_from_tmp("raw_stream.csv")
+        stream_max_updated_at = read_from_tmp("stream.csv").index.max()
+        raw_stream_max_updated_at = raw_stream.index.max()
+
+        if stream_max_updated_at < raw_stream_max_updated_at.replace(second=0):
+            print('Do This')
+
         # We are resampling everytime time, this is inefficient
         # Dont take the last one since it is not complete yet.
         stream = (
@@ -128,15 +134,19 @@ def wrap(model_name, model_version, r_threshold, run, ig_service):
             write_stream_length(stream_length)
 
             # 2
-            predictions = pipeline.predict(stream[["ASK_OPEN"]][(past_periods_needed+1):])  # predict on all stream
+            predictions = pipeline.predict(
+                stream[["ASK_OPEN"]].iloc[-(past_periods_needed + 1) :, :]
+            )  # predict on all stream
             latest_prediction = predictions[-1]
             logging.info(f"Latest prediction: {latest_prediction}")
-            if model_name == 'knn-reg-model':
+            if model_name == "knn-reg-model":
+                pass
                 # Get specific metrics from certain models that not all models expose
                 # Perhaps think of adding this to a dictionary in position_metrics as a dictionary
-                distance_to, indecies_of = pipeline[-1].kneighbors(stream[["ASK_OPEN"]][(past_periods_needed+1):])
-                indecies_of = indecies_of[0]
-                distance_to = distance_to[0]
+
+                # distance_to, indecies_of = pipeline[-1].kneighbors(pipeline[:-1].transform(stream[["ASK_OPEN"]][-(past_periods_needed+1):,:] ))
+                # indecies_of = indecies_of[0]
+                # distance_to = distance_to[0]
 
             # 3
             if latest_prediction > r_threshold:
@@ -155,7 +165,6 @@ def wrap(model_name, model_version, r_threshold, run, ig_service):
                         # "dealreference": [resp["dealReference"]],
                         "dealId": [open_position_responce["dealId"]],
                         "model_used": [f"{model_name}-v{model_version}"],
-                        "y_pred": [latest_prediction],
                         "buy_date": [pd.to_datetime(open_position_responce["date"])],
                         "sell_date": [
                             (
@@ -168,6 +177,7 @@ def wrap(model_name, model_version, r_threshold, run, ig_service):
                         "buy_level_responce": [open_position_responce["level"]],
                         # We get this from transactions, but doulbe check
                         "sold": False,
+                        "y_pred": [latest_prediction],
                     }
                 )
                 # knn_metrics
@@ -213,7 +223,7 @@ def wrap(model_name, model_version, r_threshold, run, ig_service):
             def close_open_positions(s: pd.Series):
                 """
                 Takes a series of DealIds positions to close, and closes them.
-                Updating the sold and 
+                Updating the sold and
                 """
                 for i in s:
                     logging.info(f"Closing a position with DealId: {i}")
@@ -224,7 +234,7 @@ def wrap(model_name, model_version, r_threshold, run, ig_service):
                     sold = pd.DataFrame(
                         {
                             "dealId": [i],
-                            "close_level_resp": close_position_responce["level"],
+                            "close_level_responce": close_position_responce["level"],
                         }
                     )
                     append_with_header(sold, "sold.csv")
@@ -255,7 +265,6 @@ def wrap(model_name, model_version, r_threshold, run, ig_service):
             #     # with sqlite3.connect(TMP_DIR / "autoIG.sqlite") as sqliteConnection:
             #     #     sold.to_sql(name="sold", con=sqliteConnection, if_exists="append")
 
-
             # This assumes that those that we needed to sell were succesfully sold
             position_metrics.sold = need_to_sell_bool
             position_metrics.to_csv(
@@ -268,10 +277,21 @@ def wrap(model_name, model_version, r_threshold, run, ig_service):
             #     position_metrics.to_sql(name="position_metrics", con=sqliteConnection, if_exists="append")
 
             secs_since_deployment = int(
-                (current_time - deployment_start).total_seconds()
+                (datetime.now() - deployment_start).total_seconds()
             )
 
-            write_to_transations_joined(secs_ago=secs_since_deployment)
+            # write_to_transations_joined(secs_ago=secs_since_deployment)
+            position_metrics = pd.read_csv(TMP_DIR / "position_metrics.csv")
+            try:
+                sold = pd.read_csv(TMP_DIR / "sold.csv")
+                position_metrics_merged = position_metrics.merge(sold, how="left")
+                position_metrics_merged["y_true"] = (
+                    position_metrics_merged["close_level_responce"]
+                    + position_metrics_merged["buy_level_responce"]
+                )
+                position_metrics_merged.to_csv(TMP_DIR / "position_metrics_merged.csv",index = False)
+            except pd.errors.EmptyDataError:
+                logging.info("No Data in sold")
 
         return None
 
