@@ -13,7 +13,8 @@ from autoIG.utils import (
     read_stream_length,
     write_stream_length,
 )
-from autoIG.create_data import write_to_transations_joined, whipe_data
+import numpy as np
+from autoIG.create_data import  whipe_data
 from autoIG.deployment.deployment_config import models_to_deploy
 
 # import sqlite3
@@ -58,7 +59,7 @@ def wrap(model_name, model_version, r_threshold, run, ig_service):
     target_periods_in_future = int(run.data.params["target_periods_in_future"])
 
     pipeline = load_model(f"models:/{model_name}/{model_version}")
-    write_stream_length(0)
+    # write_stream_length(0)
 
     deployment_start = datetime.now()
 
@@ -85,12 +86,13 @@ def wrap(model_name, model_version, r_threshold, run, ig_service):
 
         append_with_header(prices_stream_responce(item), "raw_stream.csv")
         raw_stream = read_from_tmp("raw_stream.csv")
-        stream_max_updated_at = read_from_tmp("stream.csv").index.max()
+        stream_max_updated_at = read_from_tmp("stream.csv",usecols=['UPDATED_AT']).index.max()
         raw_stream_max_updated_at = raw_stream.index.max()
 
-        if stream_max_updated_at < raw_stream_max_updated_at.replace(second=0):
-            print("Do This")
-
+        # Only bother updating stream if we have enough data from raw_stream
+        if (stream_max_updated_at < raw_stream_max_updated_at.replace(second=0)) or (
+            stream_max_updated_at is pd.NaT 
+        ):
             # We are resampling everytime time, this is inefficient
             # Dont take the last one since it is not complete yet.
             stream = (
@@ -100,179 +102,137 @@ def wrap(model_name, model_version, r_threshold, run, ig_service):
                 .iloc[:-1, :]
             )
             stream.to_csv(TMP_DIR / "stream.csv", mode="w", header=True)
-            # with sqlite3.connect(TMP_DIR / "autoIG.sqlite") as sqliteConnection:
-            #     stream.to_sql(name="stream", con=sqliteConnection, if_exists="append")
             stream_length = stream.shape[0]
 
+            # write_stream_length(stream_length)
+        # try:
+        #     stream = read_from_tmp("stream.csv")
+        # except pd.errors.EmptyDataError:
+        #     stream_length = 0
+        # with sqlite3.connect(TMP_DIR / "autoIG.sqlite") as sqliteConnection:
+        #     stream.to_sql(name="stream", con=sqliteConnection, if_exists="append")
+
         # Only predict when there is a new piece of stream data
-        if (stream_length >= past_periods_needed) and (
-            read_stream_length() < stream_length
-        ):
-            # When a new row is added to stream we jump into action.
-            # Do the folling:
-            # 1. Update the stream length number, so we know when next to jump into action
-            # 2. Make a new prediction
-            # 3. Check if new prediction warrents buying and buy
-            # 4. record information about the buy in position_metrics
-            # 4. Check if now we need to sell anything
+            if (stream_length >= past_periods_needed):
+                logging.info('level 2')
 
-            # 1
-            write_stream_length(stream_length)
+                # When a new row is added to stream we jump into action.
+                # Do the folling:
+                # 1. Update the stream length number, so we know when next to jump into action
+                # 2. Make a new prediction
+                # 3. Check if new prediction warrents buying and buy
+                # 4. record information about the buy in position_metrics
+                # 4. Check if now we need to sell anything
 
-            # 2
-            predictions = pipeline.predict(
-                stream[["ASK_OPEN"]].iloc[-(past_periods_needed + 1) :, :]
-            )  # predict on all stream
-            latest_prediction = predictions[-1]
-            logging.info(f"Latest prediction: {latest_prediction}")
-            if model_name == "knn-reg-model":
-                pass
-                # Get specific metrics from certain models that not all models expose
-                # Perhaps think of adding this to a dictionary in position_metrics as a dictionary
+                # 1
+                # write_stream_length(stream_length)
 
-                # distance_to, indecies_of = pipeline[-1].kneighbors(pipeline[:-1].transform(stream[["ASK_OPEN"]][-(past_periods_needed+1):,:] ))
-                # indecies_of = indecies_of[0]
-                # distance_to = distance_to[0]
+                # 2
+                predictions = pipeline.predict(
+                    stream[["ASK_OPEN"]].iloc[-(past_periods_needed + 1) :, :]
+                )  # predict on all stream
+                latest_prediction = predictions[-1]
+                logging.info(f"Latest prediction: {latest_prediction}")
+                if model_name == "knn-reg-model":
+                    pass
+                    # Get specific metrics from certain models that not all models expose
+                    # Perhaps think of adding this to a dictionary in position_metrics as a dictionary
 
-            # 3
-            if latest_prediction > r_threshold:
-                logging.info("BUY!")
-                open_position_responce = ig_service.create_open_position(
-                    **open_position_config_(epic=run.data.params["epic"])
-                )
-                # resp in columns in confirms.create_open_positiion
+                    # distance_to, indecies_of = pipeline[-1].kneighbors(pipeline[:-1].transform(stream[["ASK_OPEN"]][-(past_periods_needed+1):,:] ))
+                    # indecies_of = indecies_of[0]
+                    # distance_to = distance_to[0]
 
-                logging.info(
-                    f"Opened position with DealId: {open_position_responce['dealId']}. Status: { open_position_responce['dealStatus'] }"
-                )
-                # 4
-                position_metrics = pd.DataFrame(
-                    {
-                        # "dealreference": [resp["dealReference"]],
-                        "dealId": [open_position_responce["dealId"]],
-                        "model_used": [f"{model_name}-v{model_version}"],
-                        "buy_date": [pd.to_datetime(open_position_responce["date"])],
-                        "sell_date": [
-                            (
-                                pd.to_datetime(open_position_responce["date"]).round(
-                                    "1min"
+                # 3
+                if latest_prediction > r_threshold:
+                    logging.info("BUY!")
+                    open_position_responce = ig_service.create_open_position(
+                        **open_position_config_(epic=run.data.params["epic"])
+                    )
+                    # resp in columns in confirms.create_open_positiion
+
+                    logging.info(
+                        f"Opened position with DealId: {open_position_responce['dealId']}. Status: { open_position_responce['dealStatus'] }"
+                    )
+                    # 4
+                    position_metrics = pd.DataFrame(
+                        {
+                            # "dealreference": [resp["dealReference"]],
+                            "dealId": [open_position_responce["dealId"]],
+                            "model_used": [f"{model_name}-v{model_version}"],
+                            "buy_date": [pd.to_datetime(open_position_responce["date"])],
+                            "sell_date": [
+                                (
+                                    pd.to_datetime(open_position_responce["date"]).round(
+                                        "1min"
+                                    )
+                                    + timedelta(minutes=target_periods_in_future)
                                 )
-                                + timedelta(minutes=target_periods_in_future)
-                            )
-                        ],
-                        "buy_level_responce": [open_position_responce["level"]],
-                        # We get this from transactions, but doulbe check
-                        "sold": False,
-                        "y_pred": [latest_prediction],
-                    }
+                            ],
+                            "buy_level_responce": [open_position_responce["level"]],
+                            # We get this from transactions, but doulbe check
+                            "sold": False,
+                            "y_pred": [latest_prediction],
+                        }
+                    )
+                    # knn_metrics
+                    append_with_header(position_metrics, "position_metrics.csv")
+
+                    # append responce
+                    # This info is in activity??
+                    single_responce = (
+                        pd.Series(open_position_responce).to_frame().transpose()
+                    )
+                # 5
+                # to_sell = pd.read_csv(TMP_DIR / "to_sell.csv")
+
+                position_metrics = pd.read_csv(TMP_DIR / "position_metrics.csv")
+
+                need_to_sell_bool = (
+                    pd.to_datetime(position_metrics.sell_date) < datetime.now()
                 )
-                # knn_metrics
-                # to_sell = pd.DataFrame()
-                # append_with_header(to_sell, "to_sell.csv")
-                append_with_header(position_metrics, "position_metrics.csv")
+                sell_bool = need_to_sell_bool & (position_metrics.sold == False)
+
+                close_open_positions(
+                    position_metrics[sell_bool].dealId, ig_service=ig_service
+                )
+
+                # This assumes that those that we needed to sell were succesfully sold
+                position_metrics.sold = need_to_sell_bool
+                position_metrics.to_csv(
+                    TMP_DIR / "position_metrics.csv", mode="w", header=True, index=False
+                )
+
                 # with sqlite3.connect(TMP_DIR / "autoIG.sqlite") as sqliteConnection:
-                #     position_metrics.to_sql(
-                #         name="position_metrics",
-                #         con=sqliteConnection,
-                #         if_exists="append",
-                #     )
+                #     # Maybe open and close connection only once at the begining and end?
+                #     # Or wrap everthing in a context manager
+                #     position_metrics.to_sql(name="position_metrics", con=sqliteConnection, if_exists="append")
 
-                # append responce
-                # This info is in activity??
-                single_responce = (
-                    pd.Series(open_position_responce).to_frame().transpose()
+                secs_since_deployment = int(
+                    (datetime.now() - deployment_start).total_seconds()
                 )
-            # 5
-            # to_sell = pd.read_csv(TMP_DIR / "to_sell.csv")
 
-            position_metrics = pd.read_csv(TMP_DIR / "position_metrics.csv")
+                # write_to_transations_joined(secs_ago=secs_since_deployment)
+                position_metrics = pd.read_csv(TMP_DIR / "position_metrics.csv")
+                try:
+                    sold = pd.read_csv(TMP_DIR / "sold.csv")
+                except pd.errors.EmptyDataError:
+                    print("Nothing sold yet, creating empty dataframe")
+                    sold = pd.DataFrame(columns=["dealId", "close_level_responce"])
 
-            need_to_sell_bool = (
-                pd.to_datetime(position_metrics.sell_date) < datetime.now()
-            )
-            sell_bool = need_to_sell_bool & (position_metrics.sold == False)
+                position_metrics_merged = position_metrics.merge(sold, how="left")
 
-            # def close_open_positions(s: pd.Series):
-            #     """
-            #     Takes a series of DealIds positions to close, and closes them.
-            #     Updating the sold and
-            #     """
-            #     for i in s:
-            #         logging.info(f"Closing a position with DealId: {i}")
-            #         # Q: How does close position responce differ from open position responce
-            #         close_position_responce = ig_service.close_open_position(
-            #             **close_position_config_(dealId=i)
-            #         )
-            #         sold = pd.DataFrame(
-            #             {
-            #                 "dealId": [i],
-            #                 "close_level_responce": close_position_responce["level"],
-            #             }
-            #         )
-            #         append_with_header(sold, "sold.csv")
-            #     return None
+                position_metrics_merged["y_true"] = (
+                    position_metrics_merged["close_level_responce"]
+                    / position_metrics_merged["buy_level_responce"]
+                )
+                position_metrics_merged['y_pred_actual'] = position_metrics_merged['y_pred']*position_metrics_merged['buy_level_responce']
+                position_metrics_merged["profit_responce"] = np.where(position_metrics_merged['close_level_responce'].isna(),np.NaN, 1 * (position_metrics_merged['close_level_responce'] - position_metrics_merged['buy_level_responce']) ) 
+                position_metrics_merged = position_metrics_merged.fillna('None')
+                position_metrics_merged.to_csv(
+                    TMP_DIR / "position_metrics_merged.csv", index=False
+                )
 
-            close_open_positions(
-                position_metrics[sell_bool].dealId, ig_service=ig_service
-            )
-
-            # for i in position_metrics[sell_bool].dealId:
-            #     logging.info(f"Closing a position {i}")
-            #     close_position_responce = ig_service.close_open_position(
-            #         **close_position_config_(dealId=i)
-            #     )
-            #     sold = pd.DataFrame(
-            #         # We need this to get the closing refernce for the IG.transactions table
-            #         {
-            #             "dealId": [i],
-            #             # "dealreference": [resp["dealReference"]],  # closing reference
-            #             # "dealId": [close_position_responce["dealId"]],  # closing dealId, the same as i
-            #             "close_level_resp": close_position_responce[
-            #                 "level"
-            #             ],  # These should come from IG.transactions, but just checking
-            #             # "profit_resp": close_position_responce[
-            #             #     "profit"
-            #             # ],  # These should come from IG.transactions, but just checking
-            #         }
-            #     )
-            #     append_with_header(sold, "sold.csv")
-            #     # with sqlite3.connect(TMP_DIR / "autoIG.sqlite") as sqliteConnection:
-            #     #     sold.to_sql(name="sold", con=sqliteConnection, if_exists="append")
-
-            # This assumes that those that we needed to sell were succesfully sold
-            position_metrics.sold = need_to_sell_bool
-            position_metrics.to_csv(
-                TMP_DIR / "position_metrics.csv", mode="w", header=True, index=False
-            )
-
-            # with sqlite3.connect(TMP_DIR / "autoIG.sqlite") as sqliteConnection:
-            #     # Maybe open and close connection only once at the begining and end?
-            #     # Or wrap everthing in a context manager
-            #     position_metrics.to_sql(name="position_metrics", con=sqliteConnection, if_exists="append")
-
-            secs_since_deployment = int(
-                (datetime.now() - deployment_start).total_seconds()
-            )
-
-            # write_to_transations_joined(secs_ago=secs_since_deployment)
-            position_metrics = pd.read_csv(TMP_DIR / "position_metrics.csv")
-            try:
-                sold = pd.read_csv(TMP_DIR / "sold.csv")
-            except pd.errors.EmptyDataError:
-                print("Nothing sold yet, creating empty dataframe")
-                sold = pd.DataFrame(columns=["dealId", "close_level_responce"])
-
-            position_metrics_merged = position_metrics.merge(sold, how="left")
-            position_metrics_merged["y_true"] = (
-                position_metrics_merged["close_level_responce"]
-                / position_metrics_merged["buy_level_responce"]
-            )
-            # position_metrics_merged["profit_responce"]
-            position_metrics_merged.to_csv(
-                TMP_DIR / "position_metrics_merged.csv", index=False
-            )
-
-        return None
+            return None
 
     return on_update
 

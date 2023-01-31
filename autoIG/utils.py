@@ -12,12 +12,12 @@ DATA_DIR = ROOT_DIR.parent / "data"
 
 
 ## READ/WRITE I/O
-def read_from_tmp(file="stream_.csv"):
+def read_from_tmp(file="stream_.csv",*args,**kwargs):
     path = TMP_DIR / file
 
     "Read the persistent stream data and take the last 3 rows"
     df = pd.read_csv(
-        path,
+        path,*args,**kwargs
         # parse_dates=[3],  # after the index has been made
         # dtype={"ASK_OPEN": np.float64, "BID_OPEN": np.float64, "MARKET_STATE": str},
     )

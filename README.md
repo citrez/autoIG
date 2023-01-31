@@ -11,7 +11,8 @@ Below I set out the specifics of how I address these 3 points.
 I try to keep documentation as close to code as possible. 
 There is documentation in the DBML. Comments on the code. 
 ## Getting started
-start grafana with `./bin/grafana-server web ` in the grafana repo
+start grafana with `./bin/grafana-server web ` in the grafana repo. Listens on localhost post 3000
+
 Start a local server on port 8000 using `python3 -m http.server` in the autoIG folder. 
 grafana username and password is admin
 TODO: Make this in root dir 

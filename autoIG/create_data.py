@@ -168,6 +168,7 @@ def whipe_data():
     pd.DataFrame().to_csv(TMP_DIR / "raw_stream.csv", index=False, header=False)
     pd.DataFrame().to_csv(TMP_DIR / "sold.csv", index=False, header=False)
     pd.DataFrame().to_csv(TMP_DIR / "position_metrics.csv", index=False, header=False)
+    pd.DataFrame().to_csv(TMP_DIR / "position_metrics_merged.csv", index=False, header=False)
     # pd.DataFrame().to_csv(TMP_DIR / "to_sell.csv", index=False, header=False)
     Path(TMP_DIR / "autoIG.sqlite").unlink()
     (TMP_DIR / "autoIG.sqlite").touch()
