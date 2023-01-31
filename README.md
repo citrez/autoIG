@@ -30,8 +30,21 @@ In grafana, connect to mysql with root user
 - [IG-markets-api-python-library](https://github.com/ig-python/ig-markets-api-python-library)
 - [IG Dashboard](https://www.ig.com/uk/myig/dashboard)
 
+MLflow used for tracking trained models. Storing the model itself, performance metrics and parameters needed to deploy. 
+
+graphna used for live monitoring on modelsdeployment
+
+mermaid used for flowchart live documenation 
+
+dbml used for database schema and producing . 
+
+## Features
+Ability to list a model (from mlflow) in config and then deploy (with monitoring) seamlessly.
+Abilty to see where the training data came from. 
+
 ### Choices
 Do not use Oanda. Use IG API for making trades. 
+Use yahoo finance for historical data
 
 Arrange into proper docs:
 Set LIMIT and STOP losses on all trades. Each trade lasts 3 mins, as set out in the training 

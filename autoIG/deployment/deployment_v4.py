@@ -272,10 +272,9 @@ def run():
         if user_input == "dd":
             break
 
-    close_open_positions(
-        (pd.read_csv(TMP_DIR / "position_metrics.csv").query("sold=='False'").dealId),
-        ig_service=ig_service,
-    )
+    # Total clean up 
+    open_positions = ig_service.fetch_open_positions()
+    close_open_positions(open_positions.dealId,ig_service)
     ig_stream_service.disconnect()
     return None
 
