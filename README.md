@@ -86,7 +86,7 @@ rs --> rscsv[(raw_stream.csv)]
 s --> scsv[(stream.csv)]
 s --if steam larger than past_periods_needed-->p
 e[epic]-->rs
-conf[config]-->thr[buy threshold]
+conf[deploy config]-->thr[buy threshold]
 thr-->op
 
 mv[model version]-->mp
@@ -97,7 +97,7 @@ mlf[Mlflow] -->ppn[past_periods_needed]
 ppn-->p
 
 
-mp[Model pipeline]-->p[predictions]
+mp[Model pipeline]-->p[Make prediction]
 p--if latest prediction>threshold-->op[Open a Position]
 op-->pm[(position_metrics.csv)]
 pm-->cp[Close a position]
