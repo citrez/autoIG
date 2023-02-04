@@ -80,20 +80,22 @@ OFFER: I sell for
 title: on_update
 ---
 flowchart TB
+s --> scsv[(stream.csv)]
 rs[raw_stream] --if market open\nif stream larger--> s[stream]
 mn[model name]-->mp
 rs --> rscsv[(raw_stream.csv)]
-s --> scsv[(stream.csv)]
 s --if steam larger than past_periods_needed-->p
 e[epic]-->rs
 conf[deploy config]-->thr[buy threshold]
 thr-->op
+pm-->pmm[(position_metrics_merged.csv)]
+sold-->pmm
 
 mv[model version]-->mp
-mlf[Mlflow] -->e
-mlf[Mlflow] -->mn
-mlf[Mlflow] -->mv
-mlf[Mlflow] -->ppn[past_periods_needed]
+mlf[MlflowClient] -->e
+mlf -->mn
+mlf -->mv
+mlf -->ppn[past_periods_needed]
 ppn-->p
 
 
@@ -103,6 +105,29 @@ op-->pm[(position_metrics.csv)]
 pm-->cp[Close a position]
 cp-->pm
 cp-->sold[(sold.csv)]
+```
+
+``` mermaid
+---
+title: fetch_data
+---
+flowchart TB
+intr[instrument]-->c[config]
+source[Source]-->c
+res[Resolution]-->c
+f[fetch_all_training_data]-->cd[Create directory]
+
+c-->cd
+fh-->d3[(training/\nsource/\ninstrument/\nresolution/\nstart_to_end)]
+cd-->fh[fetch_history]
+subgraph training_buckets
+d1[(training/\nsource/\ninstrument/\nresolution/\nstart_to_end)]
+d2[(training/\nsource/\ninstrument/\nresolution/\nstart_to_end)]
+d3
+end
+
+
+
 ```
 
 
@@ -124,11 +149,6 @@ C --> D[sklearn pipeline]
 E --> C[(stream.csv)]
 D --> P[prediction]
 ```
-
-
-
-
-Raw stream comes in and get minute resampled.
 
 Everytime we buy. OPU gives us the time we bought. We wants to have a record of the prediction and model used. 
 
