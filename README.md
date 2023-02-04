@@ -2,16 +2,19 @@
 
 The aim of this repository is to allow for as-easy-as-possible exploration of various trading strategies and techniques. To this end, I want to make it as easy as possible to
 1) Train new models with new strategies/ hyper-paramters.
-2) Deploy these models into a shadow environemnt
-3) Monitor the performance shadow models
+1) Deploy these models into a shadow environemnt
+2) Monitor the performance shadow models
 4) Promote well performing shadow models to live
 
 ## Open source tech used:
 - mlflow - track trained model metrics, store the model, make deployment easier by saving
 - parameters needed in deployments with the model.
+![](docs/img/mlflow_screenshot.png)
 - grafana - Monitor deployment, monitor shadow performance
+![](docs/img/grafana_screenshot.png)
 - dbml/mermaid - Documentation diagrams
 - sklearn - ML pipelines
+- ![](docs/img/sklearnpipeline_screenshot.png)
 - pandas/numpy
 
 ## Getting started
@@ -94,6 +97,7 @@ sold-->pmm
 mv[model version]-->mp
 mlf[MlflowClient] -->e
 mlf -->mn
+mlf-->pp[past_periods]
 mlf -->mv
 mlf -->ppn[past_periods_needed]
 ppn-->p
