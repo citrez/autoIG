@@ -2,16 +2,17 @@
 This fetches the latest data from yahoo finance 
 Historical price data points per week: 10,000 (Applies to price history endpoints)
 """
+import logging
+from datetime import datetime, timedelta
+
 import pandas as pd
 
-from autoIG.instruments import Epics, Tickers
 from autoIG.config import Source
+from autoIG.instruments import Epics, Tickers
 from autoIG.utils import DATA_DIR
-import logging
-from datetime import timedelta, datetime
 
-reload_data_config = dict()
-reload_data_config["resolution"] = "1min"
+fetch_data_config = dict()
+fetch_data_config["resolution"] = "1min"
 epic = Epics.US_CRUDE_OIL.value
 ticker = Tickers.US_CRUDE_OIL.value
 source = Source.yahoo_finance.value
@@ -20,7 +21,7 @@ resolution = "1min" if source == "IG" else "1m"
 
 # ig_yf_resolution = {"1min": "1m"}
 # resolutions = {"1min": {"IG": "1min", "YF": "1m"}}
-# reload_data_config["numpoints"] = 500
+# reload_data_config["numpoints"] = 500∫
 
 
 class DataDownloaded(Exception):
@@ -29,7 +30,11 @@ class DataDownloaded(Exception):
 
 
 # TODO: Find out if they are business days (with pandas) before trying to fetch data
-def fetch_all_training_data(start_date, end_date):
+def fetch_history_bucket(start_date, end_date,instrument = instrument):
+    """
+    This gets historical price data from a start date to end date.
+    And saved in an appropiatly named directory
+    """
 
     model_data_dir = (
         DATA_DIR / "training" / source / f"{instrument.replace('.', '_')}" / resolution
@@ -41,6 +46,7 @@ def fetch_all_training_data(start_date, end_date):
 
     if source == "IG":
         from trading_ig.rest import IGService
+
         from autoIG.config import ig_service_config
 
         ig_service = IGService(**ig_service_config)
@@ -74,12 +80,13 @@ def fetch_all_training_data(start_date, end_date):
 
 def make_training_data(path):
     """
-    This takes all the saved data e.g 2022-01-01_to_2022-01-04 and adds it all together
+    This takes all the data saved in buckets e.g 2022-01-01_to_2022-01-04
+    And concatinates them into a single training data dataset.
     """
     model_data_dir = DATA_DIR / "training" / path
     if (model_data_dir / "full_data.csv").exists():
         (model_data_dir / "full_data.csv").unlink()
-        logging.info("Removeed full_data.csv")
+        logging.info("Removed full_data.csv")
 
     dfs = []
     for i in [f for f in model_data_dir.iterdir() if f.suffix =='.csv']:
@@ -101,7 +108,10 @@ def make_training_data(path):
 
 
 def inspect_training_data():
-    "Take a look at the dates we have and output an image"
+    """Take a look at the dates we have and output
+    an image"""
+    import matplotlib.dates as mdates
+    import matplotlib.pyplot as plt
     datetimes = pd.read_csv(
         DATA_DIR / "training/YF/CL=F/1m/full_data.csv",
         usecols=["datetime"],
@@ -110,8 +120,6 @@ def inspect_training_data():
     datetimes["count"] = 1
     datetimes = datetimes.set_index("datetime")
     datetimes.index = pd.to_datetime(datetimes.index)
-    import matplotlib.pyplot as plt
-    import matplotlib.dates as mdates
 
     fig,ax = plt.subplots()
     plt_data = datetimes.resample("120min").count()
@@ -123,9 +131,11 @@ def inspect_training_data():
     return None
 
 
-def training_data_runner():
-    """Perform the actions needed to get, update and then inspect the training data"""
-    make_training_data("YF/CL=F/1m") # Do this first
+def run_training_data(instument=instrument):
+    """Perform the actions needed to get,
+    update and then inspect the training data
+    """
+    make_training_data("YF/CL=F/1m") # Do this first, so that our 'max date' we have is accuate
 
     max_datetime = pd.read_csv(
         DATA_DIR / "training/YF/CL=F/1m/full_data.csv", usecols=["datetime"]
@@ -135,13 +145,16 @@ def training_data_runner():
     yesterday = datetime.now().date() - timedelta(days=1)
     logging.info(f"Max date: {max_date} Yesterday: {yesterday}")
     if max_date < yesterday:
-        fetch_all_training_data(start_date=str(max_date), end_date=str(yesterday))
+        fetch_history_bucket(start_date=str(max_date), end_date=str(yesterday))
         make_training_data("YF/CL=F/1m")
         inspect_training_data()
 
     else:
         logging.info("No need to fetch new data and re-make full_data.csv")
     return None
+
+def run_fetch_data():
+    pass
 
 
 if __name__ == "__main__":
@@ -150,4 +163,4 @@ if __name__ == "__main__":
         level=logging.INFO,
         datefmt="%Y-%m-%d %H:%M:%S",
     )
-    training_data_runner()
+    run_training_data()
