@@ -44,7 +44,7 @@ logging.basicConfig(
 ######
 # WE DO NOT KEEP ANY OLD DATA EACH TIME WE DEPLOY.
 # THIS IS BY CHOICE UNTIL WE HAVE A MORE MATURE PRODUCT
-# whipe_data()
+whipe_data()
 #######
 
 
@@ -186,6 +186,12 @@ def wrap(model_name, model_version, r_threshold, run, ig_service):
                 # to_sell = pd.read_csv(TMP_DIR / "to_sell.csv")
 
                 position_metrics = pd.read_csv(TMP_DIR / "position_metrics.csv")
+
+                # There is no need for this mess. We can have a sell_data and a sold table
+                # And do an anti join on sold and a sell_data<now to check which havent been sold 
+                # and need to be. Dont like this updating on state in the position metrics table
+                # !
+                
 
                 need_to_sell_bool = (
                     pd.to_datetime(position_metrics.sell_date) < datetime.now()
