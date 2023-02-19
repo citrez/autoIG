@@ -14,7 +14,7 @@ from autoIG.utils import (
     write_stream_length,
 )
 import numpy as np
-from autoIG.create_data import  whipe_data
+from autoIG.create_data import whipe_data
 from autoIG.deployment.deployment_config import models_to_deploy
 
 # import sqlite3
@@ -86,12 +86,14 @@ def wrap(model_name, model_version, r_threshold, run, ig_service):
 
         append_with_header(prices_stream_responce(item), "raw_stream.csv")
         raw_stream = read_from_tmp("raw_stream.csv")
-        stream_max_updated_at = read_from_tmp("stream.csv",usecols=['UPDATED_AT']).index.max()
+        stream_max_updated_at = read_from_tmp(
+            "stream.csv", usecols=["UPDATED_AT"]
+        ).index.max()
         raw_stream_max_updated_at = raw_stream.index.max()
 
         # Only bother updating stream if we have enough data from raw_stream
         if (stream_max_updated_at < raw_stream_max_updated_at.replace(second=0)) or (
-            stream_max_updated_at is pd.NaT 
+            stream_max_updated_at is pd.NaT
         ):
             # We are resampling everytime time, this is inefficient
             # Dont take the last one since it is not complete yet.
@@ -105,16 +107,16 @@ def wrap(model_name, model_version, r_threshold, run, ig_service):
             stream_length = stream.shape[0]
 
             # write_stream_length(stream_length)
-        # try:
-        #     stream = read_from_tmp("stream.csv")
-        # except pd.errors.EmptyDataError:
-        #     stream_length = 0
-        # with sqlite3.connect(TMP_DIR / "autoIG.sqlite") as sqliteConnection:
-        #     stream.to_sql(name="stream", con=sqliteConnection, if_exists="append")
+            # try:
+            #     stream = read_from_tmp("stream.csv")
+            # except pd.errors.EmptyDataError:
+            #     stream_length = 0
+            # with sqlite3.connect(TMP_DIR / "autoIG.sqlite") as sqliteConnection:
+            #     stream.to_sql(name="stream", con=sqliteConnection, if_exists="append")
 
-        # Only predict when there is a new piece of stream data
-            if (stream_length >= past_periods_needed):
-                logging.info('level 2')
+            # Only predict when there is a new piece of stream data
+            if stream_length >= past_periods_needed:
+                logging.info("level 2")
 
                 # When a new row is added to stream we jump into action.
                 # Do the folling:
@@ -159,12 +161,14 @@ def wrap(model_name, model_version, r_threshold, run, ig_service):
                             # "dealreference": [resp["dealReference"]],
                             "dealId": [open_position_responce["dealId"]],
                             "model_used": [f"{model_name}-v{model_version}"],
-                            "buy_date": [pd.to_datetime(open_position_responce["date"])],
+                            "buy_date": [
+                                pd.to_datetime(open_position_responce["date"])
+                            ],
                             "sell_date": [
                                 (
-                                    pd.to_datetime(open_position_responce["date"]).round(
-                                        "1min"
-                                    )
+                                    pd.to_datetime(
+                                        open_position_responce["date"]
+                                    ).round("1min")
                                     + timedelta(minutes=target_periods_in_future)
                                 )
                             ],
@@ -188,10 +192,9 @@ def wrap(model_name, model_version, r_threshold, run, ig_service):
                 position_metrics = pd.read_csv(TMP_DIR / "position_metrics.csv")
 
                 # There is no need for this mess. We can have a sell_data and a sold table
-                # And do an anti join on sold and a sell_data<now to check which havent been sold 
+                # And do an anti join on sold and a sell_data<now to check which havent been sold
                 # and need to be. Dont like this updating on state in the position metrics table
                 # !
-                
 
                 need_to_sell_bool = (
                     pd.to_datetime(position_metrics.sell_date) < datetime.now()
@@ -231,9 +234,20 @@ def wrap(model_name, model_version, r_threshold, run, ig_service):
                     position_metrics_merged["close_level_responce"]
                     / position_metrics_merged["buy_level_responce"]
                 )
-                position_metrics_merged['y_pred_actual'] = position_metrics_merged['y_pred']*position_metrics_merged['buy_level_responce']
-                position_metrics_merged["profit_responce"] = np.where(position_metrics_merged['close_level_responce'].isna(),np.NaN, 1 * (position_metrics_merged['close_level_responce'] - position_metrics_merged['buy_level_responce']) ) 
-                position_metrics_merged = position_metrics_merged.fillna('None')
+                position_metrics_merged["y_pred_actual"] = (
+                    position_metrics_merged["y_pred"]
+                    * position_metrics_merged["buy_level_responce"]
+                )
+                position_metrics_merged["profit_responce"] = np.where(
+                    position_metrics_merged["close_level_responce"].isna(),
+                    np.NaN,
+                    1
+                    * (
+                        position_metrics_merged["close_level_responce"]
+                        - position_metrics_merged["buy_level_responce"]
+                    ),
+                )
+                position_metrics_merged = position_metrics_merged.fillna("None")
                 position_metrics_merged.to_csv(
                     TMP_DIR / "position_metrics_merged.csv", index=False
                 )
@@ -278,9 +292,9 @@ def run():
         if user_input == "dd":
             break
 
-    # Total clean up 
+    # Total clean up
     open_positions = ig_service.fetch_open_positions()
-    close_open_positions(open_positions.dealId,ig_service)
+    close_open_positions(open_positions.dealId, ig_service)
     ig_stream_service.disconnect()
     return None
 
