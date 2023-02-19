@@ -4,15 +4,22 @@ from autoIG.utils import log_shape
 
 ## Tools to create the TARGET 'r'
 
+# Ask is what I buy for
+# Bid is what I sell for
+
+
 def create_future_bid_Open(df, future_periods=1):
     """
     Add the future periods selling price to the df.
-    This is important for training, to calculate the profits I would make, and inform the target
+    This is important for training, to calculate the profits I would make.
+    The target is what I would be able to sell for in one period
+    divided by what I can buy for now.
     """
     df_ = df.copy()
     for i in range(1, future_periods + 1):
         # Next period's bid price is what we can sell it at
-        df_["BID_OPEN_S" + str(i)] = df_["BID_OPEN"].shift(-i)
+        # F for plus, P for past
+        df_["BID_OPEN_F" + str(i)] = df_["BID_OPEN"].shift(i)
     return df_
 
 
@@ -23,7 +30,7 @@ def generate_target(df: pd.DataFrame, target_periods_in_future=1) -> pd.DataFram
     """
     d = df.copy()
     if target_periods_in_future == 1:
-        d["r"] = d["BID_OPEN_S1"] / d["ASK_OPEN"]
+        d["r"] = d["BID_OPEN_F1"] / d["ASK_OPEN"]
     return d  # What I sell for next period / What I buy for this period
 
 
@@ -32,8 +39,8 @@ def create_past_ask_Open(df: pd.DataFrame, past_periods=3):
     "Add the past periods buying price to the df"
     df_ = df.copy()
     for i in range(1, past_periods + 1):
-        df_["ASK_OPEN_S" + str(i)] = df_["ASK_OPEN"].shift(
-            i
+        df_["ASK_OPEN_P" + str(i)] = df_["ASK_OPEN"].shift(
+            -i
         )  # Next period's ask price is what we can sell it at
     return df_
 
@@ -61,9 +68,9 @@ def adapt_YF_data_for_training(df):
     d.index.name = "UPDATED_AT"
     d = d[["open"]].rename(columns={"open": "ASK_OPEN"})
     d["BID_OPEN"] = (
-        d["ASK_OPEN"] + 3
+        d["ASK_OPEN"] - 3
     )  # HACK: This data doesnt have bid/ask spread,so I just estimate
-    return d
+    return d[["BID_OPEN", "ASK_OPEN"]]
 
 
 def adapt_IG_data_for_training(df):
