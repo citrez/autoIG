@@ -33,9 +33,7 @@ from autoIG.utils import log_shape
 
 MLFLOW_RUN = True
 # MLflow config
-EXPERIMENT_NAME = "knn-reg"
-MODEL_NAME = "knn-reg-model"
-mlflow.set_experiment(EXPERIMENT_NAME)
+
 
 from model_config import (
     source,
@@ -48,18 +46,16 @@ from model_config import (
     past_periods,
 )
 
+knn_params = {"n_neighbors": 3}
 
 # We could do a check on local data to check we have what we need, and if
 # We dont get an error to fetch the data
 
 # TODO: Now we are doing this from local, we should probably set up some DVC data tracking
+MODEL_DATA_DIR = DATA_DIR / "training" / source / ticker.replace(".", "_") / resolution
+
 model_data = pd.read_csv(
-    DATA_DIR
-    / "training"
-    / source
-    / ticker.replace(".", "_")
-    / resolution
-    / "full_data.csv",
+    MODEL_DATA_DIR / "full_data.csv",
     parse_dates=["datetime"],
 )
 
@@ -88,7 +84,6 @@ def create_pipeline():
     )  # ISSUE: This shouldnt be needed but is.
 
     normalise_transformer = FunctionTransformer(normalise_)
-    knn_params = {"n_neighbors": 5}
     pl = Pipeline(
         [
             (
@@ -101,6 +96,9 @@ def create_pipeline():
         ]
     )
     if MLFLOW_RUN:
+        EXPERIMENT_NAME = "knn-reg"
+        MODEL_NAME = "knn-reg-model"  # Remove, set in UI
+        mlflow.set_experiment(EXPERIMENT_NAME)
         with mlflow.start_run():
             mlflow.log_params(params=knn_params)
             mlflow.log_param(
@@ -156,18 +154,20 @@ if MLFLOW_RUN:
             ),
         )
 
-        fig, (ax1, ax2) = plt.subplots(1, 2)
+        mlflow.log_artifact(local_path=MODEL_DATA_DIR / "fig.png", artifact_path="docs")
+
+        fig, (ax1, ax2) = plt.subplots(1, 2, sharex=True, sharey=True)
         y_preds_train = pl.predict(X_train)
         q = 0.9999
-        ax1.scatter(y_train,y_preds_train , s=0.7, alpha=0.8)
+        ax1.scatter(y_train, y_preds_train, s=0.7, alpha=0.8)
         ax1.set_title("train")
-        ax1.set_xlim([np.quantile(y_train,1-q),np.quantile(y_train,q)])
-        ax1.set_ylim([np.quantile(y_preds_train,1-q),np.quantile(y_preds_train,q)])
+        ax1.set_xlim([np.quantile(y_train, 1 - q), np.quantile(y_train, q)])
+        ax1.set_ylim([np.quantile(y_preds_train, 1 - q), np.quantile(y_preds_train, q)])
 
-        y_preds_test= pl.predict(X_test)
-        ax2.scatter(y_test,y_preds_test , s=0.7, alpha=0.8)
-        ax2.set_xlim([np.quantile(y_test,1-q),np.quantile(y_test,q)])
-        ax2.set_ylim([np.quantile(y_preds_test,1-q),np.quantile(y_preds_test,q)])
+        y_preds_test = pl.predict(X_test)
+        ax2.scatter(y_test, y_preds_test, s=0.7, alpha=0.8)
+        ax2.set_xlim([np.quantile(y_test, 1 - q), np.quantile(y_test, q)])
+        ax2.set_ylim([np.quantile(y_preds_test, 1 - q), np.quantile(y_preds_test, q)])
 
         ax2.set_title("test")
         ax1.set_xlabel("y_true")
@@ -175,39 +175,71 @@ if MLFLOW_RUN:
         ax2.set_xlabel("y_true")
         ax2.set_ylabel("y_pred")
         fig.set_size_inches(h=5, w=10)
-        ax1.axline((1.03, 1.03), (1.04, 1.04),color='black',linestyle = '--')
-        ax2.axline((1.03, 1.03), (1.04, 1.04),color='black',linestyle = '--')
+        ax1.axline((1.03, 1.03), (1.04, 1.04), color="black", linestyle="--")
+        ax2.axline((1.03, 1.03), (1.04, 1.04), color="black", linestyle="--")
         plt.suptitle("training_and_testing_predictions_scatter")
 
         mlflow.log_figure(fig, "training_and_testing_predictions_scatter.png")
         plt.close()
 
-        fig, ax = plt.subplots()
-        bins = int(len(y_train) * 0.003)
-        plt.hist(
+        fig, (ax1, ax2) = plt.subplots(1, 2, sharex=True)
+        train_bins = int(len(y_train) * 0.003)
+        test_bins = int(len(y_test) * 0.003)
+        binwidth = 0.0002
+
+        bins = np.arange(0.9, 1.5 + binwidth, binwidth)
+
+        ax1.hist(
             [y_train, pl.predict(X_train)],
             bins=bins,
             alpha=0.5,
-            # range=(0.999, 1.001),
             label=["y_true", "y_pred"],
         )
+        ax1.set_title("train")
+        ax2.hist(
+            [y_test, pl.predict(X_test)],
+            bins=bins,
+            alpha=0.5,
+            label=["y_true", "y_pred"],
+        )
+        ax2.set_title("test")
+
         plt.legend(loc="upper right")
-        plt.suptitle("training_y_true y_preds")
+        plt.suptitle("training y_true y_preds")
+        ax1.set_xlabel("Returns (y)")
+        ax1.set_ylabel("Count")
+
+        training_testing_preds = np.concatenate(
+            [pl.predict(X_train), pl.predict(X_test)]
+        )
+        ax1.set_xlim(
+            [
+                np.quantile(training_testing_preds, 0.0001),
+                np.quantile(training_testing_preds, 0.9999),
+            ]
+        )
         mlflow.log_figure(fig, "training_y_true_y_preds.png")
-        ax.set_xlabel("Returns (y)")
-        ax.set_ylabel("Count")
         plt.close()
 
         fig, (ax0, ax1) = plt.subplots(1, 2)
         ax0.scatter(y_train, (y_train - pl.predict(X_train)), s=0.7, alpha=0.8)
         ax0.set_title("train")
         ax0.set_xlabel("y_true")
-        ax0.xaxis.set_major_formatter(mticker.FuncFormatter(lambda x,pos: str(round(x,3)) ))
+        ax0.xaxis.set_major_formatter(
+            mticker.FuncFormatter(lambda x, pos: str(round(x, 3)))
+        )
         ax1.set_xlabel("y_true")
         ax1.scatter(y_test, (y_test - pl.predict(X_test)), s=0.7, alpha=0.8)
         ax1.set_title("test")
         ax0.set_ylabel("y_true - y_pred")
         ax1.set_ylabel("y_true - y_pred")
+        xlim_lower = np.quantile(
+            np.concatenate([y_train.to_numpy(), y_test.to_numpy()]), 0.99
+        )
+        xlim_upper = np.quantile(
+            np.concatenate([y_train.to_numpy(), y_test.to_numpy()]), 0.01
+        )
+        # ax0.set_xlim([xlim_lower, xlim_upper])
         plt.suptitle("training_error_size")
         fig.set_size_inches(h=4, w=10)
         mlflow.log_figure(fig, "error_size.png")
@@ -221,6 +253,12 @@ if MLFLOW_RUN:
         )
         # Log parameters of model
         mlflow.log_param("source", source)
+
+        mlflow.log_param("min_training_date", X_train.index.min())
+        mlflow.log_param("max_training_date", X_train.index.max())
+        mlflow.log_param("min_testing_date", X_test.index.min())
+        mlflow.log_param("max_testing_date", X_test.index.max())
+
         mlflow.log_param("epic", epic)
         mlflow.log_param("ticker", ticker)
         mlflow.log_param("past_periods_needed", past_periods_needed)
@@ -237,10 +275,8 @@ if MLFLOW_RUN:
         CURRENT_DIR = Path(__file__).parent
         with open(CURRENT_DIR / "pl.html", "w") as f:
             f.write(estimator_html_repr(pl))
-            mlflow.log_artifact(
-                local_path=CURRENT_DIR / "pl.html", artifact_path="docs"
-            )
-            (CURRENT_DIR / "pl.html").unlink()
+        mlflow.log_artifact(local_path=CURRENT_DIR / "pl.html", artifact_path="docs")
+        (CURRENT_DIR / "pl.html").unlink()
 
         ## KNN specific metrics
 
@@ -302,7 +338,7 @@ if MLFLOW_RUN:
             bins=bins,
             # histtype='stepfilled',
             alpha=0.5,
-            range=(np.quantile(train_hist,0), np.quantile(train_hist,0.99)),
+            range=(np.quantile(train_hist, 0), np.quantile(train_hist, 0.99)),
             label=["X_train", "X_test"],
             density=True,
         )
@@ -313,26 +349,45 @@ if MLFLOW_RUN:
         mlflow.log_figure(fig, "closeness_hist.png")
         plt.close()
 
-        # If the test set is close to train set, does it produce better predictions
+        # If the test set is close to train set, does it produce better predictions?
         X_test_transformed = pl[:-1].transform(X_test)
+        X_train_transformed = pl[:-1].transform(X_train)
         # The distances to the X_train
         # Q: Is the shorter the distances the better the prediction is?
         X_test_distance_to = pl[-1].kneighbors(X_test_transformed)[0].sum(axis=1)
-        absoloute_error = np.array((pl.predict(X_test) - y_test).abs())
+        test_absoloute_error = np.array((pl.predict(X_test) - y_test).abs())
 
-        fig, ax = plt.subplots()
-        ax.scatter(
+        X_train_distance_to = pl[-1].kneighbors(X_train_transformed)[0].sum(axis=1)
+        train_absoloute_error = np.array((pl.predict(X_train) - y_train).abs())
+
+        fig, (ax1, ax2) = plt.subplots(1, 2, sharey=True, sharex=True)
+        ax1.scatter(
             X_test_distance_to,
-            absoloute_error,
+            test_absoloute_error,
+            s=1,
+            alpha=0.8,
+        )
+        ax2.scatter(
+            X_train_distance_to,
+            train_absoloute_error,
             s=1,
             alpha=0.8,
         )
         q = 0.99
-        ax.set_xlim([np.quantile(X_test_distance_to,1-q), np.quantile(X_test_distance_to,q)])
-        ax.set_ylim([np.quantile(absoloute_error,1-q), np.quantile(absoloute_error,q)])
-        ax.set_xlabel("Sum of distance to the k training points")
-        ax.set_ylabel("absoloute_error")
-        ax.set_title("X_test")
+        ax1.set_xlim(
+            [np.quantile(X_test_distance_to, 1 - q), np.quantile(X_test_distance_to, q)]
+        )
+        ax1.set_ylim(
+            [
+                np.quantile(test_absoloute_error, 1 - q),
+                np.quantile(test_absoloute_error, q),
+            ]
+        )
+        ax1.set_xlabel("Sum of distance to the k training points")
+        ax1.set_ylabel("absoloute_error")
+        ax1.set_title("X_test")
+        ax2.set_title("X_train")
+        fig.set_size_inches(h=5, w=10)
         mlflow.log_figure(fig, "closeness_vrs_error.png")
         plt.close()
 
