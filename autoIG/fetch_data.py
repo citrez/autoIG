@@ -4,12 +4,14 @@ Historical price data points per week: 10,000 (Applies to price history endpoint
 """
 import logging
 from datetime import datetime, timedelta
-
 import pandas as pd
-
 from autoIG.config import Source
 from autoIG.instruments import Epics, Tickers
 from autoIG.utils import DATA_DIR
+import yfinance as yf
+import matplotlib.dates as mdates
+import matplotlib.pyplot as plt
+
 
 fetch_data_config = dict()
 fetch_data_config["resolution"] = "1min"
@@ -19,10 +21,6 @@ source = Source.yahoo_finance.value
 instrument = epic if source == "IG" else ticker
 resolution = "1min" if source == "IG" else "1m"
 
-# ig_yf_resolution = {"1min": "1m"}
-# resolutions = {"1min": {"IG": "1min", "YF": "1m"}}
-# reload_data_config["numpoints"] = 500∫
-
 
 class DataDownloaded(Exception):
     "Trying to fetch data that has already been downloaded"
@@ -30,10 +28,10 @@ class DataDownloaded(Exception):
 
 
 # TODO: Find out if they are business days (with pandas) before trying to fetch data
-def fetch_history_bucket(start_date, end_date,instrument = instrument):
+def fetch_history_bucket(start_date, end_date, instrument=instrument):
     """
     This gets historical price data from a start date to end date.
-    And saved in an appropiatly named directory
+    And saved in an appropriately named directory
     """
 
     model_data_dir = (
@@ -44,9 +42,8 @@ def fetch_history_bucket(start_date, end_date,instrument = instrument):
     if model_data_path.exists():
         raise DataDownloaded("This data has already been downloaded")
 
-    if source == "IG":
+    if source == "IG":  # Can I get rid of this?
         from trading_ig.rest import IGService
-
         from autoIG.config import ig_service_config
 
         ig_service = IGService(**ig_service_config)
@@ -64,9 +61,6 @@ def fetch_history_bucket(start_date, end_date,instrument = instrument):
         logging.info(f"Successfully saved data to {str(model_data_dir)}")
 
     if source == "YF":
-
-        import yfinance as yf
-
         tick = yf.Ticker(ticker=instrument)
         # only 7 days worth of 1m granulairty allowed. TODO: Check for this
         model_data = tick.history(interval=resolution, start=start_date, end=end_date)
@@ -85,12 +79,12 @@ def make_training_data(path):
     """
     model_data_dir = DATA_DIR / "training" / path
     if (model_data_dir / "full_data.csv").exists():
-        (model_data_dir / "full_data.csv").unlink()
+        (model_data_dir / "full_data.csv").unlink()  # delete
         logging.info("Removed full_data.csv")
 
     dfs = []
-    for i in [f for f in model_data_dir.iterdir() if f.suffix =='.csv']:
-        dfs.append(pd.read_csv(i))
+    for file in [f for f in model_data_dir.iterdir() if f.suffix == ".csv"]:
+        dfs.append(pd.read_csv(file))
     full_data = pd.concat(dfs, axis="rows")
     full_data = full_data.sort_values("datetime", ascending=False)
     full_data["datetime"] = pd.to_datetime(
@@ -108,10 +102,11 @@ def make_training_data(path):
 
 
 def inspect_training_data():
-    """Take a look at the dates we have and output
-    an image"""
-    import matplotlib.dates as mdates
-    import matplotlib.pyplot as plt
+    """
+    Take a look at the dates we have in out full_data dataset
+    and output an image.
+    """
+
     datetimes = pd.read_csv(
         DATA_DIR / "training/YF/CL=F/1m/full_data.csv",
         usecols=["datetime"],
@@ -121,21 +116,25 @@ def inspect_training_data():
     datetimes = datetimes.set_index("datetime")
     datetimes.index = pd.to_datetime(datetimes.index)
 
-    fig,ax = plt.subplots()
+    fig, ax = plt.subplots()
     plt_data = datetimes.resample("120min").count()
-    plt.plot(plt_data.index,plt_data['count'])
-    fig.set_size_inches(w= 12,h= 3)
-    ax.xaxis.set_major_formatter(mdates.DateFormatter('%d-%m-%y'))
+    plt.plot(plt_data.index, plt_data["count"])
+    fig.set_size_inches(w=12, h=3)
+    ax.xaxis.set_major_formatter(mdates.DateFormatter("%d-%m-%y"))
     ax.xaxis.set_major_locator(mdates.DayLocator(interval=7))
     plt.savefig(DATA_DIR / "training/YF/CL=F/1m/fig.png")
+
     return None
 
 
 def run_training_data(instument=instrument):
-    """Perform the actions needed to get,
+    """
+    Perform the actions needed to get,
     update and then inspect the training data
     """
-    make_training_data("YF/CL=F/1m") # Do this first, so that our 'max date' we have is accuate
+    make_training_data(
+        "YF/CL=F/1m"
+    )  # Do this first, so that our 'max date' we have is accuate
 
     max_datetime = pd.read_csv(
         DATA_DIR / "training/YF/CL=F/1m/full_data.csv", usecols=["datetime"]
@@ -152,6 +151,7 @@ def run_training_data(instument=instrument):
     else:
         logging.info("No need to fetch new data and re-make full_data.csv")
     return None
+
 
 def run_fetch_data():
     pass
