@@ -12,12 +12,14 @@ DATA_DIR = ROOT_DIR.parent / "data"
 
 
 ## READ/WRITE I/O
-def read_from_tmp(file="stream_.csv",*args,**kwargs):
+def read_from_tmp(file="stream_.csv", *args, **kwargs):
     path = TMP_DIR / file
 
     "Read the persistent stream data and take the last 3 rows"
     df = pd.read_csv(
-        path,*args,**kwargs
+        path,
+        *args,
+        **kwargs
         # parse_dates=[3],  # after the index has been made
         # dtype={"ASK_OPEN": np.float64, "BID_OPEN": np.float64, "MARKET_STATE": str},
     )
@@ -85,10 +87,11 @@ def log_shape(df):
     logging.info(f"Shape: {df.shape[0]:,} {df.shape[1]:,}")
     return df
 
-def close_open_positions(s: pd.Series,ig_service):
+
+def close_open_positions(s: pd.Series, ig_service):
     """
     Takes a series of DealIds positions to close, and closes them.
-    Logs the sold things to the sold table, this should be split out of this function 
+    Logs the sold things to the sold table, this should be split out of this function
     # TODO: Above
     """
     for i in s:
@@ -105,4 +108,3 @@ def close_open_positions(s: pd.Series,ig_service):
         )
         append_with_header(sold, "sold.csv")
     return None
-

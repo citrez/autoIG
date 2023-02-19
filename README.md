@@ -78,6 +78,15 @@ OFFER: I sell for
 
 ### Explanation in simple terms
 
+The aim is the have the ability to easily deploy models. Training scripts, to train model (With data as input) are in the models/ folder. Each time I am happy with a model, it is logged in MLflow. Within MLflow not only are there performance metrics, but also, the paramenters ()/such as  the intrument name) which are needed during deployment. This is smart, because then the deployments script can just use a config which can have arbitrariliy many models, pick up the information needed from MLflow and deploy. The more models I try, the easier ist is to see how therey are doing, the better
+
+### Data
+
+There are 2 seperate types of data used. 
+The more simple is the data used to train the model(s). As of now, this is just price data. fetch_data.py starta a process to download and save 1min price data, which feeds in to the model. 
+
+The more complex data, is making sure, during the deploymenr of the model, the model gets the data it needs. And then we save performance data after it makes a prediction. 
+
 ``` mermaid
 ---
 title: on_update
@@ -133,7 +142,6 @@ end
 
 
 ```
-
 
 ### Hints
 Use `watch -n 1 tail /Users/ezracitron/my_projects/auto_IG/autoIG/resources/tmp/raw_stream.csv` to set up looking at raw stream

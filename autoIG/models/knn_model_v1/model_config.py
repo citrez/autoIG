@@ -8,7 +8,7 @@ epic = (
 ticker = Tickers.US_CRUDE_OIL.value
 # This is the threshold that we should use in prod?
 # But really this should be a seperate piece of analysis?
-threshold = 1.01
+threshold = 0.965
 # how many many rows we need to get a proper prediction, max of all past periods
 past_periods_needed = 10
 past_periods = 10
