@@ -6,11 +6,7 @@ i.e prices only models should all work with the same deployment script.
 """
 from datetime import datetime
 from mlflow import MlflowClient
-from autoIG.utils import (
-    prices_stream_responce,
-    read_from_tmp,
-    TMP_DIR
-)
+from autoIG.utils import prices_stream_responce, read_from_tmp, TMP_DIR
 import numpy as np
 from autoIG.create_data import whipe_data
 from autoIG.deployment.deployment_config import models_to_deploy
@@ -80,14 +76,13 @@ def wrap(model_name, model_version, r_threshold, run, ig_service):
         raw_stream = read_from_tmp("raw_stream.csv")
         raw_stream_max_updated_at = raw_stream.index.max()
         # raw_stream_max_updated_at = raw_stream.index.max()
-        
-        stream_max_updated_at = read_from_tmp( # What if there is no stream.csv?
+
+        stream_max_updated_at = read_from_tmp(  # What if there is no stream.csv?
             "stream.csv", usecols=["UPDATED_AT"]
         ).index.max()
 
         if stream_max_updated_at is np.nan:
             stream_max_updated_at = pd.NaT
-
 
         # Only bother updating stream if we have enough data from raw_stream so that resampling will create a new line in stream
         # Or if there is nothing in stream, since then we want to keep on resamlping, as we are dropping the last line, we will only get a stream when we have it
@@ -100,7 +95,9 @@ def wrap(model_name, model_version, r_threshold, run, ig_service):
                 raw_stream.resample(pd.Timedelta(seconds=60), label="right")
                 .last()
                 .dropna()  # since if there is a gap in raw stream all the intermediate resamples are filled with nas
-                .iloc[:-1, :] # We dont take the last minutes resample, since it is incomplete.
+                .iloc[
+                    :-1, :
+                ]  # We dont take the last minutes resample, since it is incomplete.
             )
             stream.to_csv(TMP_DIR / "stream.csv", mode="w", header=True)
             stream_length = stream.shape[0]
@@ -174,7 +171,7 @@ def wrap(model_name, model_version, r_threshold, run, ig_service):
                             ],
                             "buy_level_responce": [open_position_responce["level"]],
                             # We get this from transactions, but doulbe check
-                            "sold": False,
+                            # "sold": False,
                             "y_pred": [latest_prediction],
                         }
                     )
@@ -191,7 +188,7 @@ def wrap(model_name, model_version, r_threshold, run, ig_service):
 
                 position_metrics = pd.read_csv(TMP_DIR / "position_metrics.csv")
 
-                # There is no need for this mess. We can have a sell_data and a sold table
+                # There is no need for this mess. We can have a sell_date and a sold table
                 # And do an anti join on sold and a sell_data<now to check which havent been sold
                 # and need to be. Dont like this updating on state in the position metrics table
                 # !
@@ -199,17 +196,32 @@ def wrap(model_name, model_version, r_threshold, run, ig_service):
                 need_to_sell_bool = (
                     pd.to_datetime(position_metrics.sell_date) < datetime.now()
                 )
-                sell_bool = need_to_sell_bool & (position_metrics.sold == False)
+                # TODO: Creak out the read_csv if empty return an empty dataframe whole thing into a simple function.
+                try:
+                    sold = pd.read_csv(TMP_DIR / "sold.csv")
+                except pd.errors.EmptyDataError:
+                    print("sold.csv empoty. Creating empty dataframe")
+                    sold = pd.DataFrame(columns=["dealId", "close_level_responce"])
 
-                close_open_positions(
-                    position_metrics[sell_bool].dealId, ig_service=ig_service
+                _ = position_metrics.loc[need_to_sell_bool, :].merge(
+                    sold, on="dealId", how="left", indicator=True
                 )
+                need_to_sell = _[
+                    _._merge == "left_only"
+                ]  # performs an anti join, looking for the ones we soulhd have sold (sell_data< now) that are not in the list of dealids we have sold
+                close_open_positions(need_to_sell.dealId, ig_service=ig_service)
+
+                # sell_bool = need_to_sell_bool & (position_metrics.sold == False)
+
+                # close_open_positions(
+                #     position_metrics[sell_bool].dealId, ig_service=ig_service
+                # )
 
                 # This assumes that those that we needed to sell were succesfully sold
-                position_metrics.sold = need_to_sell_bool
-                position_metrics.to_csv(
-                    TMP_DIR / "position_metrics.csv", mode="w", header=True, index=False
-                )
+                # position_metrics.sold = need_to_sell_bool
+                # position_metrics.to_csv(
+                #     TMP_DIR / "position_metrics.csv", mode="w", header=True, index=False
+                # )
 
                 # with sqlite3.connect(TMP_DIR / "autoIG.sqlite") as sqliteConnection:
                 #     # Maybe open and close connection only once at the begining and end?
@@ -228,6 +240,9 @@ def wrap(model_name, model_version, r_threshold, run, ig_service):
                     print("Nothing sold yet, creating empty dataframe")
                     sold = pd.DataFrame(columns=["dealId", "close_level_responce"])
 
+                # TODO: do not duplicate positoin_metrics information
+                # Only include information that we can only get from joining
+                # position_metrics to closing price data
                 position_metrics_merged = position_metrics.merge(sold, how="left")
 
                 position_metrics_merged["y_true"] = (
