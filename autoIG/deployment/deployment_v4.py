@@ -74,15 +74,20 @@ def wrap(model_name, model_version, r_threshold, run, ig_service):
 
         append_with_header(prices_stream_responce(item), "raw_stream.csv")
         raw_stream = read_from_tmp("raw_stream.csv")
+        raw_stream = raw_stream.set_index("UPDATED_AT")
+        raw_stream.index = pd.to_datetime(raw_stream.index)
         raw_stream_max_updated_at = raw_stream.index.max()
-        # raw_stream_max_updated_at = raw_stream.index.max()
 
-        stream_max_updated_at = read_from_tmp(  # What if there is no stream.csv?
-            "stream.csv", usecols=["UPDATED_AT"]
-        ).index.max()
+        stream = read_from_tmp("stream.csv")  
+        # What if there is no stream.csv?
 
-        if stream_max_updated_at is np.nan:
+        if len(stream)==0:
             stream_max_updated_at = pd.NaT
+        else:
+            stream = stream.set_index("UPDATED_AT")
+            stream.index = pd.to_datetime(stream.index)
+            stream_max_updated_at = stream.index.max()
+
 
         # Only bother updating stream if we have enough data from raw_stream so that resampling will create a new line in stream
         # Or if there is nothing in stream, since then we want to keep on resamlping, as we are dropping the last line, we will only get a stream when we have it
@@ -178,6 +183,8 @@ def wrap(model_name, model_version, r_threshold, run, ig_service):
                     # knn_metrics
                     append_with_header(position_metrics, "position_metrics.csv")
 
+
+
                     # append responce
                     # This info is in activity??
                     single_responce = (
@@ -197,18 +204,22 @@ def wrap(model_name, model_version, r_threshold, run, ig_service):
                     pd.to_datetime(position_metrics.sell_date) < datetime.now()
                 )
                 # TODO: Creak out the read_csv if empty return an empty dataframe whole thing into a simple function.
-                try:
-                    sold = pd.read_csv(TMP_DIR / "sold.csv")
-                except pd.errors.EmptyDataError:
-                    print("sold.csv empoty. Creating empty dataframe")
-                    sold = pd.DataFrame(columns=["dealId", "close_level_responce"])
+
+                sold=  read_from_tmp("sold.csv",df_columns = ["dealId", "close_level_responce"])
+                # try:
+                #     sold = pd.read_csv(TMP_DIR / "sold.csv")
+                # except pd.errors.EmptyDataError:
+                #     print("sold.csv empoty. Creating empty dataframe")
+                #     sold = pd.DataFrame(columns=["dealId", "close_level_responce"])
 
                 _ = position_metrics.loc[need_to_sell_bool, :].merge(
                     sold, on="dealId", how="left", indicator=True
                 )
+                # performs an anti join, looking for the ones we should have sold (sell_data< now)
+                # that are not in the list of dealids we have sold in sold.csv
                 need_to_sell = _[
                     _._merge == "left_only"
-                ]  # performs an anti join, looking for the ones we soulhd have sold (sell_data< now) that are not in the list of dealids we have sold
+                ]  
                 close_open_positions(need_to_sell.dealId, ig_service=ig_service)
 
                 # sell_bool = need_to_sell_bool & (position_metrics.sold == False)
@@ -228,22 +239,27 @@ def wrap(model_name, model_version, r_threshold, run, ig_service):
                 #     # Or wrap everthing in a context manager
                 #     position_metrics.to_sql(name="position_metrics", con=sqliteConnection, if_exists="append")
 
-                secs_since_deployment = int(
-                    (datetime.now() - deployment_start).total_seconds()
-                )
-
+                # secs_since_deployment = int(
+                #     (datetime.now() - deployment_start).total_seconds()
+                # )
                 # write_to_transations_joined(secs_ago=secs_since_deployment)
                 position_metrics = pd.read_csv(TMP_DIR / "position_metrics.csv")
-                try:
-                    sold = pd.read_csv(TMP_DIR / "sold.csv")
-                except pd.errors.EmptyDataError:
-                    print("Nothing sold yet, creating empty dataframe")
-                    sold = pd.DataFrame(columns=["dealId", "close_level_responce"])
+
+
+                sold=  read_from_tmp("sold.csv",df_columns = ["dealId", "close_level_responce"])
+
+                # try:
+                #     sold = pd.read_csv(TMP_DIR / "sold.csv")
+                # except pd.errors.EmptyDataError:
+                #     print("Nothing sold yet, creating empty dataframe")
+                #     sold = pd.DataFrame(columns=["dealId", "close_level_responce"])
 
                 # TODO: do not duplicate positoin_metrics information
                 # Only include information that we can only get from joining
                 # position_metrics to closing price data
-                position_metrics_merged = position_metrics.merge(sold, how="left")
+                position_metrics_merged = position_metrics.merge(sold, how="left", on ='dealId')
+
+
 
                 position_metrics_merged["y_true"] = (
                     position_metrics_merged["close_level_responce"]
@@ -263,9 +279,11 @@ def wrap(model_name, model_version, r_threshold, run, ig_service):
                     ),
                 )
                 position_metrics_merged = position_metrics_merged.fillna("None")
+                position_metrics_merged = position_metrics_merged[['dealId','y_true','y_pred_actual','profit_responce']]
                 position_metrics_merged.to_csv(
                     TMP_DIR / "position_metrics_merged.csv", index=False
                 )
+                # Dont repeat columns found in other data
 
             return None
 
@@ -316,7 +334,7 @@ def run():
     return None
 
 
-def deploy():
+def deployment():
     run()
 
     return None
@@ -330,4 +348,4 @@ if __name__ == "__main__":
         datefmt="%Y-%m-%d %H:%M:%S",  # filemode='w', filename='log.log'
     )
 
-    deploy()
+    deployment()
