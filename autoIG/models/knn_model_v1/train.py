@@ -29,9 +29,7 @@ from autoIG.modelling import (  # adapt_IG_data_for_training,; fillna_,
 )
 from autoIG.utils import DATA_DIR, log_shape
 
-MLFLOW_RUN = False
-# MLflow config
-
+MLFLOW_RUN = True
 
 from model_config import (
     epic,

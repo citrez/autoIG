@@ -11,14 +11,14 @@ from autoIG.utils import log_shape
 def create_future_bid_Open(df, future_periods=1):
     """
     Add the future periods selling price to the df.
-    This is important for training, to calculate the profits I would make.
+    This is important for training, to calculate the profits I would have made, had i bought and then sold in the future. We can see the future in training.
     The target is what I would be able to sell for in one period
     divided by what I can buy for now.
     """
     df_ = df.copy()
     for i in range(1, future_periods + 1):
         # Next period's bid price is what we can sell it at
-        # F for plus, P for past
+        # F for future, P for past
         df_["BID_OPEN_F" + str(i)] = df_["BID_OPEN"].shift(i)
     return df_
 
