@@ -165,6 +165,7 @@ def parse_trade_stream(item):
 def whipe_data():
     "Whipes the data in tmp/ directory"
     pd.DataFrame().to_csv(TMP_DIR / "raw_stream.csv", index=False, header=False)
+    pd.DataFrame().to_csv(TMP_DIR / "stream.csv", index=False, header=False)
     pd.DataFrame().to_csv(TMP_DIR / "sold.csv", index=False, header=False)
     pd.DataFrame().to_csv(TMP_DIR / "position_metrics.csv", index=False, header=False)
     pd.DataFrame().to_csv(
@@ -178,4 +179,5 @@ def whipe_data():
 
 if __name__ == "__main__":
     # write_to_transations_joined(10)
-    parse_trade_stream()
+    # parse_trade_stream()
+    whipe_data()
