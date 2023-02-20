@@ -12,33 +12,38 @@ DATA_DIR = ROOT_DIR.parent / "data"
 
 
 ## READ/WRITE I/O
-def read_from_tmp(file="stream_.csv", *args, **kwargs):
+def read_from_tmp(file, *args, **kwargs):
+    """Undecided whether an empty csv should return an empty dataframe or an error or maybe a warning?"""
     path = TMP_DIR / file
 
-    "Read the persistent stream data and take the last 3 rows"
+    if os.path.getsize(path)==0:
+        return pd.DataFrame()
+
     df = pd.read_csv(
         path,
         *args,
         **kwargs
-        # parse_dates=[3],  # after the index has been made
-        # dtype={"ASK_OPEN": np.float64, "BID_OPEN": np.float64, "MARKET_STATE": str},
     )
     df = df.set_index("UPDATED_AT")
     df.index = pd.to_datetime(df.index)
     return df
 
+# DEPRECIATE
+# def read_stream_length():
+#     with open(TMP_DIR / "stream_length.txt", "r") as f:
+#         l = int(f.read())
+#     return l
 
-def read_stream_length():
-    with open(TMP_DIR / "stream_length.txt", "r") as f:
-        l = int(f.read())
-    return l
+def csv_lines(p):
+    "Check that a csv is population with any lines, so we can read it"
+    pass
 
-
-def write_stream_length(n):
-    """This is needed to only write to stream when it is bigger than before"""
-    with open(TMP_DIR / "stream_length.txt", "w") as f:
-        f.write(str(n))
-        logging.info(f"New length of stream: {n}")
+# DEPRECIATE
+# def write_stream_length(n):
+#     """This is needed to only write to stream when it is bigger than before"""
+#     with open(TMP_DIR / "stream_length.txt", "w") as f:
+#         f.write(str(n))
+#         logging.info(f"New length of stream: {n}")
 
 
 # We can get responce from activity IG table
