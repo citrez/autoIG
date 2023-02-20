@@ -51,7 +51,7 @@ knn_params = {"n_neighbors": 3}
 MODEL_DATA_DIR = DATA_DIR / "training" / source / ticker.replace(".", "_") / resolution
 
 model_data = pd.read_csv(
-    MODEL_DATA_DIR / "full_data.csv",
+    MODEL_DATA_DIR / "full_data.csv", # TODO: rename full_data
     parse_dates=["datetime"],
 )
 
@@ -63,6 +63,8 @@ model_data = (
     .pipe(generate_target)
     .dropna()
 )
+
+model_data.to_csv(MODEL_DATA_DIR / "full_data_transformed.csv",) # rename to something better
 model_data.pipe(log_shape)
 
 

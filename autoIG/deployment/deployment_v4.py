@@ -125,7 +125,7 @@ def wrap(model_name, model_version, r_threshold, run, ig_service):
                 predictions = pipeline.predict(
                     stream[["ASK_OPEN"]].iloc[-(past_periods_needed + 1) :, :]
                 )  # predict on all stream
-                latest_prediction = predictions[-1]
+                latest_prediction = predictions[0]
                 logging.info(f"Latest prediction: {latest_prediction}")
                 if model_name == "knn-reg-model":
                     pass
@@ -142,7 +142,7 @@ def wrap(model_name, model_version, r_threshold, run, ig_service):
                     open_position_responce = ig_service.create_open_position(
                         **open_position_config_(epic=run.data.params["epic"])
                     )
-                    # resp in columns in confirms.create_open_positiion
+                    # responce in columns in confirms.create_open_positiion
 
                     logging.info(
                         f"Opened position with DealId: {open_position_responce['dealId']}. Status: { open_position_responce['dealStatus'] }"
@@ -167,7 +167,6 @@ def wrap(model_name, model_version, r_threshold, run, ig_service):
                             ],
                             "buy_level_responce": [open_position_responce["level"]],
                             # We get this from transactions, but doulbe check
-                            # "sold": False,
                             "y_pred": [latest_prediction],
                         }
                     )
@@ -252,20 +251,21 @@ def wrap(model_name, model_version, r_threshold, run, ig_service):
                         - position_outcomes["buy_level_responce"]
                     ),
                 )
+                position_outcomes['profit_responce_cumsum'] = position_outcomes['profit_responce'].cumsum()
                 position_outcomes = position_outcomes.fillna("None")
                 position_outcomes = position_outcomes[
-                    ["dealId", "y_true", "y_pred_actual", "profit_responce"]
+                    ["dealId", "y_true", "profit_responce"]
                 ]
                 position_outcomes.to_csv(TMP_DIR / "position_outcomes.csv", index=False)
                 # Do transformations that should utimately be views, defined in some transofmration layer like dbt
                 # For now we can load in and save tables here and decide on naming etc
                 grafana_deployment = raw_stream.join(
                     stream, how="left", lsuffix="_raw_stream", rsuffix="_stream"
-                )
+                ).fillna("None")
                 grafana_deployment.to_csv(TMP_DIR / "grafana_deployment.csv")
                 grafana_transactions = position_metrics.merge(
                     position_outcomes, how="left", on="dealId"
-                )
+                ).merge(sold, how=  'left',on = 'dealId').fillna("None")
                 grafana_transactions.to_csv(TMP_DIR / "grafana_transactions.csv")
 
             return None
