@@ -1,49 +1,47 @@
+import logging
 from functools import partial
 from pathlib import Path
 
 import matplotlib.pyplot as plt
 import matplotlib.ticker as mticker
 import mlflow
-import mlflow.sklearn
 import mlflow.models
-import pandas as pd
+import mlflow.sklearn
 import numpy as np
-from sklearn.utils import estimator_html_repr
+import pandas as pd
 from sklearn import set_config
-import logging
+from sklearn.utils import estimator_html_repr
 
 set_config(transform_output="pandas")
-from sklearn.neighbors import KNeighborsRegressor
 from sklearn.impute import SimpleImputer
-from sklearn.pipeline import Pipeline
-from sklearn.preprocessing import FunctionTransformer
 from sklearn.metrics import mean_absolute_error
 from sklearn.model_selection import train_test_split
+from sklearn.neighbors import KNeighborsRegressor
+from sklearn.pipeline import Pipeline
+from sklearn.preprocessing import FunctionTransformer
 
-from autoIG.modelling import create_future_bid_Open, generate_target
-from autoIG.utils import DATA_DIR
-from autoIG.modelling import (
-    # adapt_IG_data_for_training,
+from autoIG.modelling import (  # adapt_IG_data_for_training,; fillna_,
     adapt_YF_data_for_training,
+    create_future_bid_Open,
     create_past_ask_Open,
-    # fillna_,
+    generate_target,
     normalise_,
 )
-from autoIG.utils import log_shape
+from autoIG.utils import DATA_DIR, log_shape
 
-MLFLOW_RUN = True
+MLFLOW_RUN = False
 # MLflow config
 
 
 from model_config import (
-    source,
     epic,
-    ticker,
-    threshold,
-    past_periods_needed,
-    target_periods_in_future,
-    resolution,
     past_periods,
+    past_periods_needed,
+    resolution,
+    source,
+    target_periods_in_future,
+    threshold,
+    ticker,
 )
 
 knn_params = {"n_neighbors": 3}
@@ -71,7 +69,7 @@ model_data.pipe(log_shape)
 
 
 def create_pipeline():
-    "Creates the model pipeline"
+    "Creates the model pipeline, used for fitting and predicting"
 
     assert past_periods <= past_periods_needed
     create_past_ask_Open_num_small = partial(
@@ -81,7 +79,7 @@ def create_pipeline():
     fillna_transformer = SimpleImputer(strategy="constant", fill_value=-999)
     fillna_transformer.set_output(
         transform="pandas"
-    )  # ISSUE: This shouldnt be needed but is.
+    )  # ISSUE: This shouldnt be needed, since its it set_config, but is.
 
     normalise_transformer = FunctionTransformer(normalise_)
     pl = Pipeline(
@@ -97,7 +95,7 @@ def create_pipeline():
     )
     if MLFLOW_RUN:
         EXPERIMENT_NAME = "knn-reg"
-        MODEL_NAME = "knn-reg-model"  # Remove, set in UI
+        # MODEL_NAME = "knn-reg-model"  # Remove, set in UI
         mlflow.set_experiment(EXPERIMENT_NAME)
         with mlflow.start_run():
             mlflow.log_params(params=knn_params)
@@ -167,7 +165,8 @@ if MLFLOW_RUN:
         y_preds_test = pl.predict(X_test)
         ax2.scatter(y_test, y_preds_test, s=0.7, alpha=0.8)
         ax2.set_xlim([np.quantile(y_test, 1 - q), np.quantile(y_test, q)])
-        ax2.set_ylim([np.quantile(y_preds_test, 1 - q), np.quantile(y_preds_test, q)])
+        # ax2.set_ylim([np.quantile(y_preds_test, 1 - q), np.quantile(y_preds_test, q)])
+        ax2.set_ylim([np.quantile(y_test, 1 - q), np.quantile(y_test, q)]) # The same as x limit
 
         ax2.set_title("test")
         ax1.set_xlabel("y_true")
@@ -206,16 +205,22 @@ if MLFLOW_RUN:
 
         plt.legend(loc="upper right")
         plt.suptitle("training y_true y_preds")
+        fig.set_size_inches(h=5, w=10)
+
         ax1.set_xlabel("Returns (y)")
         ax1.set_ylabel("Count")
 
         training_testing_preds = np.concatenate(
             [pl.predict(X_train), pl.predict(X_test)]
         )
+
+        margin = 0.005
         ax1.set_xlim(
             [
-                np.quantile(training_testing_preds, 0.0001),
-                np.quantile(training_testing_preds, 0.9999),
+                # np.quantile(training_testing_preds, 0.0001),
+                # np.quantile(training_testing_preds, 0.9999),
+                1 - margin,
+                1 + margin,
             ]
         )
         mlflow.log_figure(fig, "training_y_true_y_preds.png")
@@ -233,13 +238,16 @@ if MLFLOW_RUN:
         ax1.set_title("test")
         ax0.set_ylabel("y_true - y_pred")
         ax1.set_ylabel("y_true - y_pred")
-        xlim_lower = np.quantile(
-            np.concatenate([y_train.to_numpy(), y_test.to_numpy()]), 0.99
-        )
-        xlim_upper = np.quantile(
-            np.concatenate([y_train.to_numpy(), y_test.to_numpy()]), 0.01
-        )
-        # ax0.set_xlim([xlim_lower, xlim_upper])
+
+        xlim_lower_train = np.quantile(y_train.to_numpy(), 0.01)
+        xlim_upper_train = np.quantile(y_train.to_numpy(), 0.99)
+
+        xlim_lower_test = np.quantile(y_test.to_numpy(), 0.01)
+        xlim_upper_test = np.quantile(y_test.to_numpy(), 0.99)
+
+        ax0.set_xlim([xlim_lower_train, xlim_upper_train])
+        ax1.set_xlim([xlim_lower_test, xlim_upper_test])
+
         plt.suptitle("training_error_size")
         fig.set_size_inches(h=4, w=10)
         mlflow.log_figure(fig, "error_size.png")
@@ -251,6 +259,11 @@ if MLFLOW_RUN:
         mlflow.log_metric(
             "testing_frequency", (pl.predict(X_test) > threshold).sum() / len(X_test)
         )
+        # What is the upper bound of frequency
+        mlflow.log_metric(
+            "training_frequency_actual", (y_train > 1).sum() / len(y_train)
+        )
+        mlflow.log_metric("testing_frequency_actual", (y_test > 1).sum() / len(y_test))
         # Log parameters of model
         mlflow.log_param("source", source)
 
@@ -328,10 +341,10 @@ if MLFLOW_RUN:
         # We would hope that the training and test set are both
         # equally far away from test set items
         train_hist = pl.named_steps.predictor.kneighbors(
-            pl[:-1].transform(X_train), n_neighbors=5
+            pl[:-1].transform(X_train), n_neighbors=knn_params['n_neighbors']
         )[0].sum(axis=1)
         test_hist = pl.named_steps.predictor.kneighbors(
-            pl[:-1].transform(X_test), n_neighbors=5
+            pl[:-1].transform(X_test), n_neighbors=knn_params['n_neighbors']
         )[0].sum(axis=1)
         plt.hist(
             [train_hist, test_hist],
@@ -342,7 +355,7 @@ if MLFLOW_RUN:
             label=["X_train", "X_test"],
             density=True,
         )
-        ax.set_xlabel("Sum of the distance away from 5 closest points in training set")
+        ax.set_xlabel(f"Sum of the distance away from {knn_params['n_neighbors']} closest points in training set")
         ax.set_ylabel("Count")
         plt.legend(loc="upper right")
         # plt.suptitle("training_y_true y_preds")
@@ -360,6 +373,7 @@ if MLFLOW_RUN:
         X_train_distance_to = pl[-1].kneighbors(X_train_transformed)[0].sum(axis=1)
         train_absoloute_error = np.array((pl.predict(X_train) - y_train).abs())
 
+        # This is an important plots. It asks whether predictions that we are more confident in (i.e are closer to instances in the training set) actually have less error
         fig, (ax1, ax2) = plt.subplots(1, 2, sharey=True, sharex=True)
         ax1.scatter(
             X_test_distance_to,
