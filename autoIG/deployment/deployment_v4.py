@@ -9,9 +9,7 @@ from mlflow import MlflowClient
 from autoIG.utils import (
     prices_stream_responce,
     read_from_tmp,
-    TMP_DIR,
-    read_stream_length,
-    write_stream_length,
+    TMP_DIR
 )
 import numpy as np
 from autoIG.create_data import whipe_data
@@ -32,20 +30,14 @@ import pandas as pd
 from datetime import timedelta
 from mlflow.sklearn import load_model  # this returns the actual sklearn model
 
-# from mlflow.pyfunc import load_model
+# from mlflow.pyfunc import load_model # This returns a consistent mlflow model thing
 
-# TODO: Sort out logger handling
-logging.basicConfig(
-    format="%(asctime)s %(levelname)-8s %(module)-20s %(message)s",
-    level=logging.INFO,
-    datefmt="%Y-%m-%d %H:%M:%S",  # filemode='w', filename='log.log'
-)
 
-######
+################################################
 # WE DO NOT KEEP ANY OLD DATA EACH TIME WE DEPLOY.
 # THIS IS BY CHOICE UNTIL WE HAVE A MORE MATURE PRODUCT
 whipe_data()
-#######
+################################################
 
 
 def wrap(model_name, model_version, r_threshold, run, ig_service):
@@ -59,20 +51,20 @@ def wrap(model_name, model_version, r_threshold, run, ig_service):
     target_periods_in_future = int(run.data.params["target_periods_in_future"])
 
     pipeline = load_model(f"models:/{model_name}/{model_version}")
-    # write_stream_length(0)
 
     deployment_start = datetime.now()
 
     def on_update(item):
         """
-        Everytime the subscription get new data, this is run
+        Everytime the subscription gets new price data, this is run.
 
-        1. Load and save in IG price stream
-        2. Resample the raw stream of subscription.
-        Need to get it in the form needed for predictions. 1 row per min
-        3. Everytime the stream gets larger, make a prediction.
-        4. If the prediction is greater than the threshold, BUY log information (including when to sell in position_metrics)
-        5. Check which dealIds need selling
+        1. Check if the market is open and tradable
+        2. Load and save the IG raw stream
+        3. Resample the raw stream of subscription to a stream table.
+        Need to get it in the form seen in training, 1 row per min
+        4. Everytime the stream gets larger, make a prediction using the past_periods needed.
+        5. If the prediction is greater than the threshold, BUY log information (including when to sell in position_metrics)
+        6. Check which dealIds need selling
 
         """
 
@@ -86,12 +78,19 @@ def wrap(model_name, model_version, r_threshold, run, ig_service):
 
         append_with_header(prices_stream_responce(item), "raw_stream.csv")
         raw_stream = read_from_tmp("raw_stream.csv")
-        stream_max_updated_at = read_from_tmp(
+        raw_stream_max_updated_at = raw_stream.index.max()
+        # raw_stream_max_updated_at = raw_stream.index.max()
+        
+        stream_max_updated_at = read_from_tmp( # What if there is no stream.csv?
             "stream.csv", usecols=["UPDATED_AT"]
         ).index.max()
-        raw_stream_max_updated_at = raw_stream.index.max()
 
-        # Only bother updating stream if we have enough data from raw_stream
+        if stream_max_updated_at is np.nan:
+            stream_max_updated_at = pd.NaT
+
+
+        # Only bother updating stream if we have enough data from raw_stream so that resampling will create a new line in stream
+        # Or if there is nothing in stream, since then we want to keep on resamlping, as we are dropping the last line, we will only get a stream when we have it
         if (stream_max_updated_at < raw_stream_max_updated_at.replace(second=0)) or (
             stream_max_updated_at is pd.NaT
         ):
@@ -101,7 +100,7 @@ def wrap(model_name, model_version, r_threshold, run, ig_service):
                 raw_stream.resample(pd.Timedelta(seconds=60), label="right")
                 .last()
                 .dropna()  # since if there is a gap in raw stream all the intermediate resamples are filled with nas
-                .iloc[:-1, :]
+                .iloc[:-1, :] # We dont take the last minutes resample, since it is incomplete.
             )
             stream.to_csv(TMP_DIR / "stream.csv", mode="w", header=True)
             stream_length = stream.shape[0]
@@ -156,6 +155,7 @@ def wrap(model_name, model_version, r_threshold, run, ig_service):
                         f"Opened position with DealId: {open_position_responce['dealId']}. Status: { open_position_responce['dealStatus'] }"
                     )
                     # 4
+                    # These are all the things we want to store about the prediction
                     position_metrics = pd.DataFrame(
                         {
                             # "dealreference": [resp["dealReference"]],
@@ -265,6 +265,9 @@ def run():
             i["model_version"],
             i["r_threshold"],
         )
+        logging.info(
+            f"Deploying model: {model_name}\nVersion: {model_version}\nThreshold: {r_threshold}"
+        )
         # Get information for deployment from the model itself
         client = MlflowClient()
         mv = client.get_model_version(model_name, model_version)
@@ -282,7 +285,6 @@ def run():
             items=["L1:" + run.data.params["epic"]],
             fields=["UPDATE_TIME", "BID", "OFFER", "MARKET_STATE"],
         )
-        print(f"{model_name}, {model_version}, {r_threshold}")
 
         on_update = wrap(model_name, model_version, r_threshold, run, ig_service)
         sub.addlistener(on_update)
@@ -306,5 +308,11 @@ def deploy():
 
 
 if __name__ == "__main__":
+    # TODO: Sort out logger handling
+    logging.basicConfig(
+        format="%(asctime)s %(levelname)-8s %(module)-20s %(message)s",
+        level=logging.INFO,
+        datefmt="%Y-%m-%d %H:%M:%S",  # filemode='w', filename='log.log'
+    )
 
     deploy()
