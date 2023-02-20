@@ -51,7 +51,7 @@ def fillna_(df: pd.DataFrame) -> pd.DataFrame:
 
 def normalise_(df):
     """
-    Normalises (within row) from the current asking price being 1,
+    Normalises (within each row) from the current asking price being 1,
     and all past asking prices normalised
     """
     return df / df[["ASK_OPEN"]].reindex_like(df).fillna(method="ffill", axis="columns")
@@ -61,15 +61,15 @@ def adapt_YF_data_for_training(df):
     """
     Yahoo finance data can be used for training.
     We adapt, to get in the same form as used in streaming. (Even though we stream from IG)
-    so that the data used for training is consistent
+    so that the data used for training is consistent with the data used in deployment
     """
     d = df.copy()
     d = d.set_index("datetime")
     d.index.name = "UPDATED_AT"
     d = d[["open"]].rename(columns={"open": "ASK_OPEN"})
     d["BID_OPEN"] = (
-        d["ASK_OPEN"] - 3
-    )  # HACK: This data doesnt have bid/ask spread,so I just estimate
+        d["ASK_OPEN"]
+    )  # HACK: This data doesnt have bid/ask spread,so I just estimate there being no bid/ask spread
     return d[["BID_OPEN", "ASK_OPEN"]]
 
 
