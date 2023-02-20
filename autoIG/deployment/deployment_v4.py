@@ -78,16 +78,15 @@ def wrap(model_name, model_version, r_threshold, run, ig_service):
         raw_stream.index = pd.to_datetime(raw_stream.index)
         raw_stream_max_updated_at = raw_stream.index.max()
 
-        stream = read_from_tmp("stream.csv")  
+        stream = read_from_tmp("stream.csv")
         # What if there is no stream.csv?
 
-        if len(stream)==0:
+        if len(stream) == 0:
             stream_max_updated_at = pd.NaT
         else:
             stream = stream.set_index("UPDATED_AT")
             stream.index = pd.to_datetime(stream.index)
             stream_max_updated_at = stream.index.max()
-
 
         # Only bother updating stream if we have enough data from raw_stream so that resampling will create a new line in stream
         # Or if there is nothing in stream, since then we want to keep on resamlping, as we are dropping the last line, we will only get a stream when we have it
@@ -106,14 +105,6 @@ def wrap(model_name, model_version, r_threshold, run, ig_service):
             )
             stream.to_csv(TMP_DIR / "stream.csv", mode="w", header=True)
             stream_length = stream.shape[0]
-
-            # write_stream_length(stream_length)
-            # try:
-            #     stream = read_from_tmp("stream.csv")
-            # except pd.errors.EmptyDataError:
-            #     stream_length = 0
-            # with sqlite3.connect(TMP_DIR / "autoIG.sqlite") as sqliteConnection:
-            #     stream.to_sql(name="stream", con=sqliteConnection, if_exists="append")
 
             # Only predict when there is a new piece of stream data
             if stream_length >= past_periods_needed:
@@ -177,19 +168,16 @@ def wrap(model_name, model_version, r_threshold, run, ig_service):
                             "buy_level_responce": [open_position_responce["level"]],
                             # We get this from transactions, but doulbe check
                             # "sold": False,
-                            "y_pred": [latest_prediction]
-
+                            "y_pred": [latest_prediction],
                         }
                     )
 
                     position_metrics["y_pred_actual"] = (
-                    position_metrics["y_pred"]
-                    * position_metrics["buy_level_responce"]
-                )
+                        position_metrics["y_pred"]
+                        * position_metrics["buy_level_responce"]
+                    )
                     # knn_metrics
                     append_with_header(position_metrics, "position_metrics.csv")
-
-
 
                     # append responce
                     # This info is in activity??
@@ -211,28 +199,17 @@ def wrap(model_name, model_version, r_threshold, run, ig_service):
                 )
                 # TODO: Creak out the read_csv if empty return an empty dataframe whole thing into a simple function.
 
-                sold=  read_from_tmp("sold.csv",df_columns = ["dealId", "close_level_responce"])
-                # try:
-                #     sold = pd.read_csv(TMP_DIR / "sold.csv")
-                # except pd.errors.EmptyDataError:
-                #     print("sold.csv empoty. Creating empty dataframe")
-                #     sold = pd.DataFrame(columns=["dealId", "close_level_responce"])
+                sold = read_from_tmp(
+                    "sold.csv", df_columns=["dealId", "close_level_responce"]
+                )
 
                 _ = position_metrics.loc[need_to_sell_bool, :].merge(
                     sold, on="dealId", how="left", indicator=True
                 )
                 # performs an anti join, looking for the ones we should have sold (sell_data< now)
                 # that are not in the list of dealids we have sold in sold.csv
-                need_to_sell = _[
-                    _._merge == "left_only"
-                ]  
+                need_to_sell = _[_._merge == "left_only"]
                 close_open_positions(need_to_sell.dealId, ig_service=ig_service)
-
-                # sell_bool = need_to_sell_bool & (position_metrics.sold == False)
-
-                # close_open_positions(
-                #     position_metrics[sell_bool].dealId, ig_service=ig_service
-                # )
 
                 # This assumes that those that we needed to sell were succesfully sold
                 # position_metrics.sold = need_to_sell_bool
@@ -245,27 +222,18 @@ def wrap(model_name, model_version, r_threshold, run, ig_service):
                 #     # Or wrap everthing in a context manager
                 #     position_metrics.to_sql(name="position_metrics", con=sqliteConnection, if_exists="append")
 
-                # secs_since_deployment = int(
-                #     (datetime.now() - deployment_start).total_seconds()
-                # )
-                # write_to_transations_joined(secs_ago=secs_since_deployment)
                 position_metrics = pd.read_csv(TMP_DIR / "position_metrics.csv")
 
-
-                sold=  read_from_tmp("sold.csv",df_columns = ["dealId", "close_level_responce"])
-
-                # try:
-                #     sold = pd.read_csv(TMP_DIR / "sold.csv")
-                # except pd.errors.EmptyDataError:
-                #     print("Nothing sold yet, creating empty dataframe")
-                #     sold = pd.DataFrame(columns=["dealId", "close_level_responce"])
+                sold = read_from_tmp(
+                    "sold.csv", df_columns=["dealId", "close_level_responce"]
+                )
 
                 # TODO: do not duplicate positoin_metrics information
                 # Only include information that we can only get from joining
                 # position_metrics to closing price data
-                position_outcomes = position_metrics.merge(sold, how="left", on ='dealId')
-
-
+                position_outcomes = position_metrics.merge(
+                    sold, how="left", on="dealId"
+                )
 
                 position_outcomes["y_true"] = (
                     position_outcomes["close_level_responce"]
@@ -285,16 +253,20 @@ def wrap(model_name, model_version, r_threshold, run, ig_service):
                     ),
                 )
                 position_outcomes = position_outcomes.fillna("None")
-                position_outcomes = position_outcomes[['dealId','y_true','y_pred_actual','profit_responce']]
-                position_outcomes.to_csv(
-                    TMP_DIR / "position_outcomes.csv", index=False
-                )
+                position_outcomes = position_outcomes[
+                    ["dealId", "y_true", "y_pred_actual", "profit_responce"]
+                ]
+                position_outcomes.to_csv(TMP_DIR / "position_outcomes.csv", index=False)
                 # Do transformations that should utimately be views, defined in some transofmration layer like dbt
                 # For now we can load in and save tables here and decide on naming etc
-                grafana_deployment = raw_stream.join(stream, how = 'left', lsuffix='_raw_stream', rsuffix='_stream')
-                grafana_deployment.to_csv(TMP_DIR/ 'grafana_deployment.csv')
-                grafana_transactions = position_metrics.merge(position_outcomes,how = 'left',on = 'dealId')
-                grafana_transactions.to_csv(TMP_DIR/'grafana_transactions.csv')
+                grafana_deployment = raw_stream.join(
+                    stream, how="left", lsuffix="_raw_stream", rsuffix="_stream"
+                )
+                grafana_deployment.to_csv(TMP_DIR / "grafana_deployment.csv")
+                grafana_transactions = position_metrics.merge(
+                    position_outcomes, how="left", on="dealId"
+                )
+                grafana_transactions.to_csv(TMP_DIR / "grafana_transactions.csv")
 
             return None
 

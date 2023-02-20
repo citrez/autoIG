@@ -164,7 +164,9 @@ if MLFLOW_RUN:
         ax2.scatter(y_test, y_preds_test, s=0.7, alpha=0.8)
         ax2.set_xlim([np.quantile(y_test, 1 - q), np.quantile(y_test, q)])
         # ax2.set_ylim([np.quantile(y_preds_test, 1 - q), np.quantile(y_preds_test, q)])
-        ax2.set_ylim([np.quantile(y_test, 1 - q), np.quantile(y_test, q)]) # The same as x limit
+        ax2.set_ylim(
+            [np.quantile(y_test, 1 - q), np.quantile(y_test, q)]
+        )  # The same as x limit
 
         ax2.set_title("test")
         ax1.set_xlabel("y_true")
@@ -339,10 +341,10 @@ if MLFLOW_RUN:
         # We would hope that the training and test set are both
         # equally far away from test set items
         train_hist = pl.named_steps.predictor.kneighbors(
-            pl[:-1].transform(X_train), n_neighbors=knn_params['n_neighbors']
+            pl[:-1].transform(X_train), n_neighbors=knn_params["n_neighbors"]
         )[0].sum(axis=1)
         test_hist = pl.named_steps.predictor.kneighbors(
-            pl[:-1].transform(X_test), n_neighbors=knn_params['n_neighbors']
+            pl[:-1].transform(X_test), n_neighbors=knn_params["n_neighbors"]
         )[0].sum(axis=1)
         plt.hist(
             [train_hist, test_hist],
@@ -353,7 +355,9 @@ if MLFLOW_RUN:
             label=["X_train", "X_test"],
             density=True,
         )
-        ax.set_xlabel(f"Sum of the distance away from {knn_params['n_neighbors']} closest points in training set")
+        ax.set_xlabel(
+            f"Sum of the distance away from {knn_params['n_neighbors']} closest points in training set"
+        )
         ax.set_ylabel("Count")
         plt.legend(loc="upper right")
         # plt.suptitle("training_y_true y_preds")

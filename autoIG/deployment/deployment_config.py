@@ -3,6 +3,6 @@ models_to_deploy = [
     {
         "model_name": "knn-reg-model",
         "model_version": 33,
-        "r_threshold": 0.9, # Should this be set here, or in mlflow for each model? Surely this should be included in trainnig, and is not a deployment charichteristic
+        "r_threshold": 0.9,  # Should this be set here, or in mlflow for each model? Surely this should be included in trainnig, and is not a deployment charichteristic
     }
 ]

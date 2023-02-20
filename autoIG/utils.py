@@ -11,9 +11,8 @@ TMP_DIR = ROOT_DIR / "tmp"  # TODO: Move outside the autoIG package
 DATA_DIR = ROOT_DIR.parent / "data"
 
 
-
 ## READ/WRITE I/O
-def read_from_tmp(file,df_columns=None,*args, **kwargs):
+def read_from_tmp(file, df_columns=None, *args, **kwargs):
     """Undecided whether an empty csv should return an empty dataframe or an error or maybe a warning?"""
     path = TMP_DIR / file
 
@@ -21,17 +20,14 @@ def read_from_tmp(file,df_columns=None,*args, **kwargs):
     #     return pd.DataFrame()
 
     try:
-        df = pd.read_csv(
-        path,
-        *args,
-        **kwargs
-    )
+        df = pd.read_csv(path, *args, **kwargs)
         # df = df.set_index("UPDATED_AT")
         # df.index = pd.to_datetime(df.index)
     except pd.errors.EmptyDataError:
         print(f"{path.stem+path.suffix} empty. Returning empty dataframe")
-        return pd.DataFrame(columns = df_columns)
+        return pd.DataFrame(columns=df_columns)
     return df
+
 
 # DEPRECIATE
 # def read_stream_length():
@@ -39,10 +35,12 @@ def read_from_tmp(file,df_columns=None,*args, **kwargs):
 #         l = int(f.read())
 #     return l
 
+
 def csv_lines(p):
     # Not used in the end, use a try except with checking for the no data error
     "Check that a csv is population with any lines, so we can read it"
     pass
+
 
 # DEPRECIATE
 # def write_stream_length(n):
