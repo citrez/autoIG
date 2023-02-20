@@ -177,9 +177,15 @@ def wrap(model_name, model_version, r_threshold, run, ig_service):
                             "buy_level_responce": [open_position_responce["level"]],
                             # We get this from transactions, but doulbe check
                             # "sold": False,
-                            "y_pred": [latest_prediction],
+                            "y_pred": [latest_prediction]
+
                         }
                     )
+
+                    position_metrics["y_pred_actual"] = (
+                    position_metrics["y_pred"]
+                    * position_metrics["buy_level_responce"]
+                )
                     # knn_metrics
                     append_with_header(position_metrics, "position_metrics.csv")
 
@@ -257,33 +263,38 @@ def wrap(model_name, model_version, r_threshold, run, ig_service):
                 # TODO: do not duplicate positoin_metrics information
                 # Only include information that we can only get from joining
                 # position_metrics to closing price data
-                position_metrics_merged = position_metrics.merge(sold, how="left", on ='dealId')
+                position_outcomes = position_metrics.merge(sold, how="left", on ='dealId')
 
 
 
-                position_metrics_merged["y_true"] = (
-                    position_metrics_merged["close_level_responce"]
-                    / position_metrics_merged["buy_level_responce"]
+                position_outcomes["y_true"] = (
+                    position_outcomes["close_level_responce"]
+                    / position_outcomes["buy_level_responce"]
                 )
-                position_metrics_merged["y_pred_actual"] = (
-                    position_metrics_merged["y_pred"]
-                    * position_metrics_merged["buy_level_responce"]
-                )
-                position_metrics_merged["profit_responce"] = np.where(
-                    position_metrics_merged["close_level_responce"].isna(),
+                # position_outcomes["y_pred_actual"] = (
+                #     position_outcomes["y_pred"]
+                #     * position_outcomes["buy_level_responce"]
+                # )
+                position_outcomes["profit_responce"] = np.where(
+                    position_outcomes["close_level_responce"].isna(),
                     np.NaN,
                     1
                     * (
-                        position_metrics_merged["close_level_responce"]
-                        - position_metrics_merged["buy_level_responce"]
+                        position_outcomes["close_level_responce"]
+                        - position_outcomes["buy_level_responce"]
                     ),
                 )
-                position_metrics_merged = position_metrics_merged.fillna("None")
-                position_metrics_merged = position_metrics_merged[['dealId','y_true','y_pred_actual','profit_responce']]
-                position_metrics_merged.to_csv(
-                    TMP_DIR / "position_metrics_merged.csv", index=False
+                position_outcomes = position_outcomes.fillna("None")
+                position_outcomes = position_outcomes[['dealId','y_true','y_pred_actual','profit_responce']]
+                position_outcomes.to_csv(
+                    TMP_DIR / "position_outcomes.csv", index=False
                 )
-                # Dont repeat columns found in other data
+                # Do transformations that should utimately be views, defined in some transofmration layer like dbt
+                # For now we can load in and save tables here and decide on naming etc
+                grafana_deployment = raw_stream.join(stream, how = 'left', lsuffix='_raw_stream', rsuffix='_stream')
+                grafana_deployment.to_csv(TMP_DIR/ 'grafana_deployment.csv')
+                grafana_transactions = position_metrics.merge(position_outcomes,how = 'left',on = 'dealId')
+                grafana_transactions.to_csv(TMP_DIR/'grafana_transactions.csv')
 
             return None
 

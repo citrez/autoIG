@@ -167,9 +167,11 @@ def whipe_data():
     pd.DataFrame().to_csv(TMP_DIR / "raw_stream.csv", index=False, header=False)
     pd.DataFrame().to_csv(TMP_DIR / "stream.csv", index=False, header=False)
     pd.DataFrame().to_csv(TMP_DIR / "sold.csv", index=False, header=False)
+    pd.DataFrame().to_csv(TMP_DIR / "grafana_deployment.csv", index=False, header=False)
+    pd.DataFrame().to_csv(TMP_DIR / "grafana_transactions.csv", index=False, header=False)
     pd.DataFrame().to_csv(TMP_DIR / "position_metrics.csv", index=False, header=False)
     pd.DataFrame().to_csv(
-        TMP_DIR / "position_metrics_merged.csv", index=False, header=False
+        TMP_DIR / "position_outcomes.csv", index=False, header=False
     )
     # pd.DataFrame().to_csv(TMP_DIR / "to_sell.csv", index=False, header=False)
     Path(TMP_DIR / "autoIG.sqlite").unlink()
